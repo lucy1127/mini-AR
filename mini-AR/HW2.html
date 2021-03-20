@@ -119,17 +119,17 @@ function addMarkerHiro(){
 	// 圓盤要求 30.6/11
 	let circle = new THREE.Object3D();
 	
-	let geometry0 = new THREE.CircleGeometry( 2, 0.32, Math.PI/2, 2*Math.PI/3);
+	let geometry0 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2, 2*Math.PI/3);
 	let material0 = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide} );
 	let circle0 = new THREE.Mesh( geometry0, material0 );	
 	circle.add( circle0 );  
 
-	let geometry1 = new THREE.CircleGeometry( 2, 0.32, Math.PI/2 + 2/3*Math.PI, 2*Math.PI/3);
+	let geometry1 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2 + 2/3*Math.PI, 2*Math.PI/3);
 	let material1 = new THREE.MeshBasicMaterial( { color: 0xff0000 , side: THREE.DoubleSide} );
 	let circle1 = new THREE.Mesh( geometry1, material1 );
 	circle.add( circle1 );  
    
-	let geometry2 = new THREE.CircleGeometry( 2, 0.32, Math.PI/2 - 2/3*Math.PI, 2*Math.PI/3);
+	let geometry2 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2 - 2/3*Math.PI, 2*Math.PI/3);
 	let material2 = new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } );
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
@@ -138,11 +138,9 @@ function addMarkerHiro(){
 	let material = new THREE.MeshNormalMaterial();
 	let box = new THREE.Mesh( geometry, material );
 	box.position.z = -2;
-	
-	
+
 	
 	var grid = new THREE.GridHelper (10,10,'red','white');
-	//grid.position.z = -0.5;
 	
 	circle.rotation.x = -Math.PI / 2;
 	markerRoot.add(circle,box);
