@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+<!-- three.js library -->
+<script src='../examples/vendor/three.js/build/three.min.js'></script>
+<script src="../examples/vendor/three.js/examples/js/libs/stats.min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<!-- ar.js -->
+<script src="../build/ar.js"></script>
+<script>THREEx.ArToolkitContext.baseURL = '../'</script>
+
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+<div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
+<a href="https://github.com/jeromeetienne/AR.js/" target="_blank">AR.js</a>
+	 - three.js<br>
+Minimal Version<br>
+<p id="text" style ="color:red">
+</p>
+</div>
+
+<script>
+
+var renderer, scene, camera,stats;
+var sceneHUD, cameraHUD;
+var button, hW, hH;
+var maxRotateSpeed = 1, nowRotateSpeed = 0, speedUpFlag = false;
+
+var arToolKitSource, arToolKitContext;
+var markerHiro;
+
+var angle = 0;
+var isRed = true,isActive = false;
+var markerRoot;
+
+$('#toggle').click ( //轉盤的結果(指針指向的顏色)以<p>字串呈現
+	toggle
+);
+
+class Button{
+	constructor(cx, cy, size, colorString = 'yellow', map = null){
+		this.centerX = cx;
+		this.centerY = cy;
+		this.size = size;
+		let material = new THREE.MeshBasicMaterial({
+			color: colorString,
+			transparent: true,
+			opacity: 0.7
+		});
+
+		if(map)
+			material.map = map;
+
+		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36), material);
+		this.mesh.position.set(cx, cy, 0);
+	}
+
+	setLocation(lx, ly){
+		this.mesh.position.set(lx, ly, 0);
+	}
+
+	d2To(v){
+		return Math.sqrt((v[0] - this.centerX) ** 2 + (v[1] - this.centerY) ** 2);
+	}
+}
+
+init();
+animate();
+
+function init() {
+
+	renderer	= new THREE.WebGLRenderer({alpha: true});
+	renderer.autoClear = false;
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+	scene	= new THREE.Scene();
+	camera = new THREE.Camera();
+	scene.add(camera);
+
+	arToolkitSource = new THREEx.ArToolkitSource({sourceType : 'webcam',})
+	arToolkitSource.init(function onReady(){onResize()})
+	
+	window.addEventListener('resize', function(){onResize()})
+	function onResize(){
+		arToolkitSource.onResize()	
+		arToolkitSource.copySizeTo(renderer.domElement)	
+		if( arToolkitContext.arController !== null ){
+			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
+		}	
+	}
+	console.log(THREEx.ArToolkitContext.baseURL);
+	arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '/data/data/camera_para.dat',
+		detectionMode: 'mono',
+		maxDetectionRate: 30,
+		canvasWidth: 80*3,
+		canvasHeight: 60*3,
+	})
+	arToolkitContext.init(function onCompleted(){
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+	})
+
+
+	//圓盤
+	markerHiro = addMarkerHiro();
+	scene.add (markerHiro); 
+	
+	// HUD介面
+	sceneHUD = new THREE.Scene();
+	hW = window.innerWidth / 2;
+	hH = window.innerHeight / 2;
+
+	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
+	
+	button = new Button(0,-hH / 2, hH / 3);
+	sceneHUD.add(button.mesh);
+
+	// 按鈕event
+
+	if(!!navigator.platform.match(/iPhone|iPod|iPad/)){
+		document.addEventListener("touchstart", onMouseDown, false);
+	}
+	else {
+		document.addEventListener('mousedown', onMouseDown);
+	}
+
+}
+	
+function addMarkerHiro(){
+	
+	markerRoot = new THREE.Group()
+
+	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+		type : 'pattern',
+		patternUrl : THREEx.ArToolkitContext.baseURL + '/data/data/patt.hiro'
+	})
+	
+	
+	// 圓盤要求 30.6/11
+	let circle = new THREE.Object3D();
+	
+	let geometry0 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2, 2*Math.PI/3);
+	let material0 = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide} );
+	let circle0 = new THREE.Mesh( geometry0, material0 );	
+	circle.add( circle0 );  
+
+	let geometry1 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2 + 2/3*Math.PI, 2*Math.PI/3);
+	let material1 = new THREE.MeshBasicMaterial( { color: 0xff0000 , side: THREE.DoubleSide} );
+	let circle1 = new THREE.Mesh( geometry1, material1 );
+	circle.add( circle1 );  
+   
+	let geometry2 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2 - 2/3*Math.PI, 2*Math.PI/3);
+	let material2 = new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } );
+	let circle2 = new THREE.Mesh( geometry2, material2 );
+	circle.add( circle2 );
+	
+	let geometry = new THREE.BoxGeometry(0.1,0.1,0.9);
+	let material = new THREE.MeshNormalMaterial();
+	let box = new THREE.Mesh( geometry, material );
+	box.position.z = -2;
+
+	
+	var grid = new THREE.GridHelper (10,10,'red','white');
+	
+	circle.rotation.x = -Math.PI / 2;
+	markerRoot.add(circle,box);
+	markerRoot.add(grid);
+
+	
+	return markerRoot;
+}	
+
+function animate() {
+	requestAnimationFrame (animate);
+	stats.update();
+	
+	if( arToolkitSource.ready === false )	return
+	arToolkitContext.update( arToolkitSource.domElement )
+	
+	//圓盤轉動
+	if(isActive){
+		angle += nowRotateSpeed;
+
+		if(speedUpFlag)
+			nowRotateSpeed = Math.min(nowRotateSpeed + 0.001, maxRotateSpeed);
+		else 
+			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
+
+		markerHiro.children[0].rotation.z = angle;
+	}
+
+	if(isActive && nowRotateSpeed === 0.0){
+		judge();
+	}
+	
+	renderer.clear();
+	renderer.render (scene, camera);	
+	button.mesh.material.visible = markerRoot.visible;
+	renderer.render (sceneHUD, cameraHUD);
+}
+
+function onMouseDown(event){
+	event.preventDefault();
+	let x = (event.clientX / window.innerWidth) * 2 - 1;
+	let y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+	pickCompute(x,y);
+}
+
+function pickCompute(x, y){
+	let HUD_coord = [hW * x, hH * y];
+	let dist = button.d2To(HUD_coord);
+	let printStr = [dist.toFixed(2), HUD_coord[0].toFixed(2), HUD_coord[1].toFixed(2)];
+
+	if(dist < button.size){
+		toggle();
+	}
+	else {
+		console.log('not hit');
+	}
+}
+
+function judge(){
+	angle %= Math.PI * 2;
+	if(angle > 0 && angle <= Math.PI * 2 / 3){
+		$('#text').css ('color', 'blue');
+		$('#text').text('blue');
+	} else if(angle > Math.PI * 2 / 3 && angle <= Math.PI * 4 / 3){
+		$('#text').css ('color', 'red');
+		$('#text').text('red');
+	}
+	else {
+		$('#text').css ('color', 'yellow');
+		$('#text').text('yellow');
+	}
+	isActive = false;
+}
+
+function toggle() {
+	if(isActive && nowRotateSpeed > 0){
+		speedUpFlag = false;
+	}
+	else {
+		$('#text').text('');
+		speedUpFlag = true;
+		isActive = true;
+	}
+}
+
+</script></body>
