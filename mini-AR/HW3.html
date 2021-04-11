@@ -48,6 +48,7 @@ class Button{
 		loader.load(
 		'https://i.imgur.com/r2bHPXw.png,
 		function(texture) {
+			console.log(texture);
 			var texMat = new THREE.MeshBasicMaterial({
 			map: texture
 			});
