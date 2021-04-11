@@ -37,7 +37,7 @@ $('#toggle').click ( //轉盤的結果(指針指向的顏色)以<p>字串呈現
 );
 
 class Button{
-	constructor(cx, cy, size, colorString = 'yellow', map = null){
+	constructor(cx, cy, size, colorString = 'yellow'){
 		this.centerX = cx;
 		this.centerY = cy;
 		this.size = size;
@@ -56,7 +56,8 @@ class Button{
 
 		if(map)
 			material.map = map;
-		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36),texture);
+			
+		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36),texMat);
 		this.mesh.position.set(cx, cy, 0);
 	}
 
