@@ -37,27 +37,20 @@ $('#toggle').click ( //轉盤的結果(指針指向的顏色)以<p>字串呈現
 );
 
 class Button{
-	constructor(cx, cy, size, colorString = 'yellow'){
+	constructor(cx, cy, size, colorString = 'yellow', map = null){
 		this.centerX = cx;
 		this.centerY = cy;
 		this.size = size;
-		
-		var loader = new THREE.TextureLoader();
-		loader.setCrossOrigin('');
-		//texture
-		loader.load(
-		'https://i.imgur.com/r2bHPXw.png',
-		function(texture) {
-			var texMat = new THREE.MeshBasicMaterial({
-			map: texture
-			});
-			}
-		);
+		let material = new THREE.MeshBasicMaterial({
+			color: colorString,
+			transparent: true,
+			opacity: 0.7
+		});
 
 		if(map)
 			material.map = map;
-			
-		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36),texMat);
+
+		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36), material);
 		this.mesh.position.set(cx, cy, 0);
 	}
 
@@ -136,14 +129,7 @@ function init() {
 	else {
 		document.addEventListener('mousedown', onMouseDown);
 	}
-	
-	window.addEventListener('resize', onWindowResize, false);
-}
 
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 	
 function addMarkerHiro(){
@@ -159,17 +145,17 @@ function addMarkerHiro(){
 	// 圓盤要求 30.6/11
 	let circle = new THREE.Object3D();
 	
-	let geometry0 = new THREE.CircleGeometry( 2, 32, Math.PI/2, 2*Math.PI/3);
+	let geometry0 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2, 2*Math.PI/3);
 	let material0 = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide} );
 	let circle0 = new THREE.Mesh( geometry0, material0 );	
 	circle.add( circle0 );  
 
-	let geometry1 = new THREE.CircleGeometry( 2, 32, Math.PI/2 + 2/3*Math.PI, 2*Math.PI/3);
+	let geometry1 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2 + 2/3*Math.PI, 2*Math.PI/3);
 	let material1 = new THREE.MeshBasicMaterial( { color: 0xff0000 , side: THREE.DoubleSide} );
 	let circle1 = new THREE.Mesh( geometry1, material1 );
 	circle.add( circle1 );  
    
-	let geometry2 = new THREE.CircleGeometry( 2, 32, Math.PI/2 - 2/3*Math.PI, 2*Math.PI/3);
+	let geometry2 = new THREE.CircleGeometry( 2, 0.64, Math.PI/2 - 2/3*Math.PI, 2*Math.PI/3);
 	let material2 = new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } );
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
