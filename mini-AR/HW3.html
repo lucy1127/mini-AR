@@ -48,17 +48,15 @@ class Button{
 		loader.load(
 		'https://i.imgur.com/r2bHPXw.png',
 		function(texture) {
-			console.log(texture);
 			var texMat = new THREE.MeshBasicMaterial({
 			map: texture
 			});
-			this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36),texMat);
-			},
+			}
 		);
 
 		if(map)
 			material.map = map;
-
+		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36),texMat);
 		this.mesh.position.set(cx, cy, 0);
 	}
 
@@ -137,7 +135,14 @@ function init() {
 	else {
 		document.addEventListener('mousedown', onMouseDown);
 	}
+	
+	window.addEventListener('resize', onWindowResize, false);
+}
 
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 	
 function addMarkerHiro(){
