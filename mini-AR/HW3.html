@@ -123,12 +123,27 @@ function init() {
 
 	// 按鈕event
 
-	if(!!navigator.platform.match(/iPhone|iPod|iPad/)){
+	/*if(!!navigator.platform.match(/iPhone|iPod|iPad/)){
 		document.addEventListener("touchstart", onTouchDown, false);
 	}
 	else {
 		document.addEventListener('mousedown', onMouseDown);
-	}
+	}*/
+	
+	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
+
+	if (_iOSDevice) {
+		$('#iOSdevice').text ('use iPhone/iPad')
+
+		// for those with touch screen
+    	document.addEventListener('touchstart', onTouchDown, false);
+    	document.addEventListener('touchmove', onTouchDown, false);  // same callback
+    } else {
+    	$('#iOSdevice').text ('regular')
+
+		// mousemove
+		document.addEventListener( 'mousemove', onMouseDown, false );
+    }
 
 }
 	
@@ -206,11 +221,13 @@ function animate() {
 }
 
 function onTouchDown(event){
-	event.preventDefault();
-	let mouse.x = (event.touches[0].pageX / window.innerWidth) * 2 - 1;
-	let mouse.y = -(event.touches[0].pageY / window.innerHeight) * 2 + 1;
+	if(event.touches.length == 1){
+		event.preventDefault();
+		let mouse.x = (event.touches[0].pageX / window.innerWidth) * 2 - 1;
+		let mouse.y = -(event.touches[0].pageY / window.innerHeight) * 2 + 1;
 
-	pickCompute(x,y);
+		pickCompute(x,y);
+	}
 }
 function onMouseDown(event){
 	event.preventDefault();
