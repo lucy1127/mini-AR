@@ -124,7 +124,7 @@ function init() {
 	// 按鈕event
 
 	if(!!navigator.platform.match(/iPhone|iPod|iPad/)){
-		document.addEventListener("touchstart", onMouseDown, false);
+		document.addEventListener("touchstart", onTouchDown, false);
 	}
 	else {
 		document.addEventListener('mousedown', onMouseDown);
@@ -205,10 +205,17 @@ function animate() {
 	renderer.render (sceneHUD, cameraHUD);
 }
 
-function onMouseDown(event){
+function onTouchDown(event){
 	event.preventDefault();
 	let mouse.x = (event.touches[0].pageX / window.innerWidth) * 2 - 1;
 	let mouse.y = -(event.touches[0].pageY / window.innerHeight) * 2 + 1;
+
+	pickCompute(x,y);
+}
+function onMouseDown(event){
+	event.preventDefault();
+	let mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+	let mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
 	pickCompute(x,y);
 }
