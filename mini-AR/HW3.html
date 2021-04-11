@@ -41,16 +41,23 @@ class Button{
 		this.centerX = cx;
 		this.centerY = cy;
 		this.size = size;
-		let material = new THREE.MeshBasicMaterial({
-			color: colorString,
-			transparent: true,
-			opacity: 0.7
-		});
+		
+		var loader = new THREE.TextureLoader();
+		loader.setCrossOrigin('');
+		//texture
+		loader.load(
+		'https://i.imgur.com/r2bHPXw.png,
+		function(texture) {
+			var texMat = new THREE.MeshBasicMaterial({
+			map: texture
+			});
+			this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36),texMat);
+			},
+		);
 
 		if(map)
 			material.map = map;
 
-		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36), material);
 		this.mesh.position.set(cx, cy, 0);
 	}
 
