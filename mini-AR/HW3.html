@@ -223,8 +223,8 @@ function animate() {
 function onTouchDown(event){
 	if(event.touches.length == 1){
 		event.preventDefault();
-		let mouse.x = (event.touches[0].pageX / window.innerWidth) * 2 - 1;
-		let mouse.y = -(event.touches[0].pageY / window.innerHeight) * 2 + 1;
+		let mouse.x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
+		let mouse.y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
 
 		pickCompute(x,y);
 	}
