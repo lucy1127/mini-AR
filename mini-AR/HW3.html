@@ -231,8 +231,8 @@ function onTouchDown(event){
 }
 function onMouseDown(event){
 	event.preventDefault();
-	let mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-	let mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+	let x = (event.clientX / window.innerWidth) * 2 - 1;
+	let y = -(event.clientY / window.innerHeight) * 2 + 1;
 
 	pickCompute(x,y);
 }
