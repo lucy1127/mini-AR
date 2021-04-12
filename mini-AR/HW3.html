@@ -22,7 +22,7 @@ Minimal Version<br>
 
 var renderer, scene, camera,stats;
 var sceneHUD, cameraHUD;
-var button, hW, hH;
+var button, box,hW, hH;
 var maxRotateSpeed = 1, nowRotateSpeed = 0, speedUpFlag = false;
 
 var arToolKitSource, arToolKitContext;
@@ -181,7 +181,7 @@ function addMarkerHiro(){
 	let geometry = new THREE.BoxGeometry(0.1,0.1,0.9);
 	let material = new THREE.MeshNormalMaterial();
 	let box = new THREE.Mesh( geometry, material );
-	box.position.z = -2;
+	//box.position.z = -2;
 
 	
 	var grid = new THREE.GridHelper (10,10,'red','white');
@@ -219,7 +219,7 @@ function animate() {
 	
 	renderer.clear();
 	renderer.render (scene, camera);	
-	button.mesh.material.visible = markerRoot.visible;
+	box.mesh.material.visible = markerRoot.visible;
 	renderer.render (sceneHUD, cameraHUD);
 }
 
