@@ -22,7 +22,7 @@ Minimal Version<br>
 
 var renderer, scene, camera,stats;
 var sceneHUD, cameraHUD;
-var button,hW, hH;
+var button,box,hW, hH;
 var maxRotateSpeed = 1, nowRotateSpeed = 0, speedUpFlag = false;
 
 var arToolKitSource, arToolKitContext;
@@ -110,7 +110,12 @@ function init() {
 	//圓盤
 	markerHiro = addMarkerHiro();
 	scene.add (markerHiro); 
+	//指針
 	
+	let geometry = new THREE.BoxGeometry(0.1,0.1,0.9);
+	let material = new THREE.MeshNormalMaterial();
+		box = new THREE.Mesh( geometry, material );
+
 	// HUD介面
 	sceneHUD = new THREE.Scene();
 	hW = window.innerWidth / 2;
@@ -178,10 +183,7 @@ function addMarkerHiro(){
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
 	
-	let geometry = new THREE.BoxGeometry(0.1,0.1,0.9);
-	let material = new THREE.MeshNormalMaterial();
-	let box = new THREE.Mesh( geometry, material );
-	//box.position.z = -2;
+	
 
 	
 	var grid = new THREE.GridHelper (10,10,'red','white');
@@ -210,7 +212,7 @@ function animate() {
 		else 
 			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
 
-		markerHiro.children[0].rotation.z = angle;
+		box.children[0].rotation.z = angle;
 	}
 
 	if(isActive && nowRotateSpeed === 0.0){
