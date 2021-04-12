@@ -115,6 +115,7 @@ function init() {
 	let geometry = new THREE.BoxGeometry(0.1,0.1,0.9);
 	let material = new THREE.MeshNormalMaterial();
 		box = new THREE.Mesh( geometry, material );
+		scene.add (box); 
 
 	// HUD介面
 	sceneHUD = new THREE.Scene();
