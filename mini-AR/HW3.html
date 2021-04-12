@@ -118,18 +118,22 @@ function init() {
 
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
 	
-	button = new Button(0,-hH / 2, hH / 3);
-	sceneHUD.add(button.mesh);
+	var loader = new THREE.TextureLoader();
+	loader.setCrossOrigin('');
+  
+	// load a resource
+	loader.load(
+    'https://i.imgur.com/r2bHPXw.png',
+    function(texture) {
+     
+       button = new Button(-hW/2,-hH/2,hH/3,'cyan',texture);
+       sceneHUD.add(button.mesh);
+	   pickables.push(button.mesh);
+      },
+	);
 
 	// 按鈕event
 
-	/*if(!!navigator.platform.match(/iPhone|iPod|iPad/)){
-		document.addEventListener("touchstart", onTouchDown, false);
-	}
-	else {
-		document.addEventListener('mousedown', onMouseDown);
-	}*/
-	
 	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
 
 	if (_iOSDevice) {
