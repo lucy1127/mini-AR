@@ -22,7 +22,7 @@ Minimal Version<br>
 
 var renderer, scene, camera,stats;
 var sceneHUD, cameraHUD;
-var button, box,hW, hH;
+var button,hW, hH;
 var maxRotateSpeed = 1, nowRotateSpeed = 0, speedUpFlag = false;
 
 var arToolKitSource, arToolKitContext;
@@ -219,7 +219,7 @@ function animate() {
 	
 	renderer.clear();
 	renderer.render (scene, camera);	
-	box.mesh.material.visible = markerRoot.visible;
+	button.mesh.material.visible = markerRoot.visible;
 	renderer.render (sceneHUD, cameraHUD);
 }
 
