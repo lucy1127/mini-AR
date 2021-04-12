@@ -106,17 +106,17 @@ function init() {
 		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
 	})
 
-
-	//圓盤
-	markerHiro = addMarkerHiro();
-	scene.add (markerHiro); 
 	//指針
 	
 	let geometry = new THREE.BoxGeometry(0.1,0.1,0.9);
 	let material = new THREE.MeshNormalMaterial();
-		box = new THREE.Mesh( geometry, material );
-		scene.add (box); 
+	box = new THREE.Mesh( geometry, material );
+	scene.add (box); 
 
+	//圓盤
+	markerHiro = addMarkerHiro();
+	scene.add (markerHiro); 
+	
 	// HUD介面
 	sceneHUD = new THREE.Scene();
 	hW = window.innerWidth / 2;
