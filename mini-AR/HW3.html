@@ -183,13 +183,10 @@ function addMarkerHiro(){
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
 	
-	
 
-	
 	var grid = new THREE.GridHelper (10,10,'red','white');
-	
 	circle.rotation.x = -Math.PI / 2;
-	markerRoot.add(circle,box);
+	markerRoot.add(circle);
 	markerRoot.add(grid);
 
 	
@@ -212,7 +209,7 @@ function animate() {
 		else 
 			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
 
-		box.children[0].rotation.z = angle;
+		box.rotation.z = angle;
 	}
 
 	if(isActive && nowRotateSpeed === 0.0){
