@@ -128,7 +128,7 @@ function init() {
     // Function when resource is loaded
     function(texture) {
    
-       button = new Button(-halfW/2,-halfH/2,halfH/3,'cyan',texture);
+       button = new Button(-hW/2,-hH/2,hH/3,'cyan',texture);
        sceneHUD.add(button.mesh);
       },
 	);
@@ -221,7 +221,7 @@ function animate() {
 	
 	renderer.clear();
 	renderer.render (scene, camera);	
-	button.material.visible = markerRoot.visible;
+	button.mesh.material.visible = markerRoot.visible;
 	renderer.render (sceneHUD, cameraHUD);
 }
 
