@@ -168,11 +168,10 @@ function addMarkerHiro(){
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
 	
-	let geometry = new THREE.ConeGeometry( 0.4, 2, 4 );
+	let geometry = new THREE.ConeGeometry( 0.4, 1, 2 );
 	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
 	let pointer = new THREE.Mesh( geometry, material );
 	pointer .rotation.x = Math.PI/2;
-	pointer .position.set(0,0,-1);
 	
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
