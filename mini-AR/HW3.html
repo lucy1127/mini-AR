@@ -183,11 +183,10 @@ function addMarkerHiro(){
 	
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
-	group2.add(light);
 	
 	circle.rotation.x = -Math.PI / 2;
 	markerRoot.add(circle,pointer );
-
+	markerRoot.add(light);
 	
 	return markerRoot;
 }	
