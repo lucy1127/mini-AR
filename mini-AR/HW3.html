@@ -140,13 +140,13 @@ function init() {
 		$('#iOSdevice').text ('use iPhone/iPad')
 
 		// for those with touch screen
-    	document.addEventListener('touchstart', onTouchDown, false);
+    	window.addEventListener('touchstart', onTouchStart, false);
     	document.addEventListener('touchmove', onTouchDown, false);  // same callback
     } else {
     	$('#iOSdevice').text ('regular')
 
 		// mousemove
-		document.addEventListener( 'mousemove', onMouseDown, false );
+		window.addEventListener ('mousedown', onMouseDown, false);
     }
 
 }
@@ -180,16 +180,14 @@ function addMarkerHiro(){
 	circle.add( circle2 );
 	
 	//指針
+	var geometry = new THREE.Geometry();
+	geometry.vertices= [new THREE.Vector3(0,3.5/6,0), new THREE.Vector3(0.5/6,0,0), new THREE.Vector3(-0.5/6,0,0)]; 
+	geometry.faces = [new THREE.Face3(1,0,2)];
 	
-	let geometry = new THREE.BoxGeometry(0.1,0.1,0.9);
-	let material = new THREE.MeshNormalMaterial();
-	let box = new THREE.Mesh( geometry, material );
-	
-
-	var grid = new THREE.GridHelper (10,10,'red','white');
-	circle.rotation.x = -Math.PI / 2;
-	markerRoot.add(circle,box);
-	markerRoot.add(grid);
+	var pointer= new THREE.Mesh( geometry, new THREE.MeshBasicMaterial({color: 0xffffff,polygonOffset: true,polygonOffsetFactor: -1.0,polygonOffsetUnits: -4.0 }) );
+	pointer.position.set(0,0,0);
+	pointer.rotation.x = -Math.PI/2;
+	markerRoot.add(circle, pointer);
 
 	
 	return markerRoot;
@@ -202,7 +200,7 @@ function animate() {
 	if( arToolkitSource.ready === false )	return
 	arToolkitContext.update( arToolkitSource.domElement )
 	
-	//圓盤轉動
+	//指針轉動
 	if(isActive){
 		angle += nowRotateSpeed;
 
@@ -211,7 +209,7 @@ function animate() {
 		else 
 			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
 
-		markerHiro.children[0].rotation.z = angle;
+		markerHiro.children[3].rotation.z = angle;
 	}
 
 	if(isActive && nowRotateSpeed === 0.0){
@@ -223,7 +221,14 @@ function animate() {
 	button.mesh.material.visible = markerRoot.visible;
 	renderer.render (sceneHUD, cameraHUD);
 }
-
+function onTouchStart (event) {
+   if (event.touches.length == 1) {
+		event.preventDefault();
+		let X = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
+		let Y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
+		pickCompute(x,y);	
+	}
+}	
 function onTouchDown(event){
 	if(event.touches.length == 1){
 		event.preventDefault();
@@ -240,6 +245,7 @@ function onMouseDown(event){
 
 	pickCompute(x,y);
 }
+
 
 function pickCompute(x, y){
 	let HUD_coord = [hW * x, hH * y];
