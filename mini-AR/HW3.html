@@ -22,7 +22,7 @@ Minimal Version<br>
 
 var renderer, scene, camera,stats;
 var sceneHUD, cameraHUD;
-var button,hW, hH;
+var button, hW, hH;
 var maxRotateSpeed = 1, nowRotateSpeed = 0, speedUpFlag = false;
 
 var arToolKitSource, arToolKitContext;
@@ -106,7 +106,6 @@ function init() {
 		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
 	})
 
-	
 
 	//圓盤
 	markerHiro = addMarkerHiro();
@@ -119,34 +118,31 @@ function init() {
 
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
 	
-	var loader = new THREE.TextureLoader();
-	loader.setCrossOrigin('');
-  
-	// load a resource
-	loader.load(
-    'https://i.imgur.com/r2bHPXw.png',
-    function(texture) {
-     
-       button = new Button(-hW/2,-hH/2,hH/3,'cyan',texture);
-       sceneHUD.add(button.mesh);
-      },
-	);
+	button = new Button(0,-hH / 2, hH / 3);
+	sceneHUD.add(button.mesh);
 
 	// 按鈕event
 
+	/*if(!!navigator.platform.match(/iPhone|iPod|iPad/)){
+		document.addEventListener("touchstart", onTouchDown, false);
+	}
+	else {
+		document.addEventListener('mousedown', onMouseDown);
+	}*/
+	
 	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
 
 	if (_iOSDevice) {
 		$('#iOSdevice').text ('use iPhone/iPad')
 
 		// for those with touch screen
-    	window.addEventListener('touchstart', onTouchDown, false);
-    	window.addEventListener('touchmove', onTouchDown, false); 
+    	document.addEventListener('touchstart', onTouchDown, false);
+    	document.addEventListener('touchmove', onTouchDown, false);  // same callback
     } else {
     	$('#iOSdevice').text ('regular')
 
 		// mousemove
-		window.addEventListener ('mousedown', onMouseDown, false);
+		document.addEventListener( 'mousemove', onMouseDown, false );
     }
 
 }
@@ -179,15 +175,18 @@ function addMarkerHiro(){
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
 	
-	//指針
-	var geometry = new THREE.Geometry();
-	geometry.vertices= [new THREE.Vector3(0,3.5/6,0), new THREE.Vector3(0.5/6,0,0), new THREE.Vector3(-0.5/6,0,0)]; 
-	geometry.faces = [new THREE.Face3(1,0,2)];
+	let geometry = new THREE.ConeGeometry( 0.4, 2, 4 );
+	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
+	let pointer = new THREE.Mesh( geometry, material );
+	pointer .rotateX(-90* Math.PI / 180);
+	pointer .position.set(0,0,-1);
 	
-	var pointer= new THREE.Mesh( geometry, new THREE.MeshBasicMaterial({color: 0xffffff,polygonOffset: true,polygonOffsetFactor: -1.0,polygonOffsetUnits: -4.0 }) );
-	pointer.position.set(0,0,0);
-	pointer.rotation.x = -Math.PI/2;
-	markerRoot.add(circle, pointer);
+	let light = new THREE.PointLight( 0xffffff, 1,1000);
+	light.position.set(2.52,10,0);
+	group2.add(light);
+	
+	circle.rotation.x = -Math.PI / 2;
+	markerRoot.add(circle,pointer );
 
 	
 	return markerRoot;
@@ -200,7 +199,7 @@ function animate() {
 	if( arToolkitSource.ready === false )	return
 	arToolkitContext.update( arToolkitSource.domElement )
 	
-	//指針轉動
+	//圓盤轉動
 	if(isActive){
 		angle += nowRotateSpeed;
 
@@ -238,7 +237,6 @@ function onMouseDown(event){
 
 	pickCompute(x,y);
 }
-
 
 function pickCompute(x, y){
 	let HUD_coord = [hW * x, hH * y];
