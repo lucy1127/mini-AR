@@ -140,8 +140,8 @@ function init() {
 		$('#iOSdevice').text ('use iPhone/iPad')
 
 		// for those with touch screen
-    	window.addEventListener('touchstart', onTouchStart, false);
-    	document.addEventListener('touchmove', onTouchDown, false);  // same callback
+    	window.addEventListener('touchstart', onTouchDown, false);
+    	window.addEventListener('touchmove', onTouchDown, false); 
     } else {
     	$('#iOSdevice').text ('regular')
 
@@ -209,7 +209,7 @@ function animate() {
 		else 
 			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
 
-		markerHiro.children[3].rotation.z = angle;
+		markerHiro.children[1].rotation.z = angle;
 	}
 
 	if(isActive && nowRotateSpeed === 0.0){
@@ -221,14 +221,7 @@ function animate() {
 	button.mesh.material.visible = markerRoot.visible;
 	renderer.render (sceneHUD, cameraHUD);
 }
-function onTouchStart (event) {
-   if (event.touches.length == 1) {
-		event.preventDefault();
-		let X = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
-		let Y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
-		pickCompute(x,y);	
-	}
-}	
+
 function onTouchDown(event){
 	if(event.touches.length == 1){
 		event.preventDefault();
