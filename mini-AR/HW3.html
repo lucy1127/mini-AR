@@ -184,7 +184,7 @@ function addMarkerHiro(){
 	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
 	let pointer = new THREE.Mesh( geometry, material );
 	pointer.rotation.x = Math.PI/2;
-	
+	pointer.rotation.y = Math.PI;
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
 	
