@@ -124,7 +124,7 @@ function init() {
 	// load a resource
 	loader.load(
     // resource URL
-    'https://i.imgur.com/b6I5kb7.png',
+    'https://i.imgur.com/r2bHPXw.png',
     // Function when resource is loaded
     function(texture) {
    
@@ -184,7 +184,8 @@ function addMarkerHiro(){
 	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
 	let pointer = new THREE.Mesh( geometry, material );
 	pointer.rotation.x = Math.PI/2;
-	pointer.rotation.y = Math.PI;
+	pointer.rotation.z = Math.PI;
+	
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
 	
