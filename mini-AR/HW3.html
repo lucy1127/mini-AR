@@ -190,7 +190,7 @@ function addMarkerHiro(){
 	light.position.set(2.52,10,0);
 	
 	circle.rotation.x = -Math.PI / 2;
-	markerRoot.add(circle,pointer );
+	markerRoot.add(circle,pointer);
 	markerRoot.add(light);
 	
 	return markerRoot;
@@ -221,7 +221,7 @@ function animate() {
 	
 	renderer.clear();
 	renderer.render (scene, camera);	
-	button.mesh.material.visible = markerRoot.visible;
+	button.material.visible = markerRoot.visible;
 	renderer.render (sceneHUD, cameraHUD);
 }
 
