@@ -22,7 +22,7 @@ Minimal Version<br>
 
 var renderer, scene, camera,stats;
 var sceneHUD, cameraHUD;
-var button,hW, hH;
+var button, hW, hH;
 var maxRotateSpeed = 1, nowRotateSpeed = 0, speedUpFlag = false;
 
 var arToolKitSource, arToolKitContext;
@@ -106,7 +106,6 @@ function init() {
 		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
 	})
 
-	
 
 	//圓盤
 	markerHiro = addMarkerHiro();
@@ -119,21 +118,11 @@ function init() {
 
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
 	
-	var loader = new THREE.TextureLoader();
-	loader.setCrossOrigin('');
-  
-	// load a resource
-	loader.load(
-    'https://i.imgur.com/r2bHPXw.png',
-    function(texture) {
-     
-       button = new Button(-hW/2,-hH/2,hH/3,'cyan',texture);
-       sceneHUD.add(button.mesh);
-      },
-	);
+	button = new Button(0,-hH / 2, hH / 3);
+	sceneHUD.add(button.mesh);
 
 	// 按鈕event
-
+	
 	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
 
 	if (_iOSDevice) {
@@ -179,18 +168,17 @@ function addMarkerHiro(){
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
 	
-	//指針
+	let geometry = new THREE.ConeGeometry( 0.4, 1, 2 );
+	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
+	let pointer = new THREE.Mesh( geometry, material );
+	pointer .rotation.x = Math.PI/2;
 	
-	let geometry = new THREE.BoxGeometry(0.1,0.1,0.9);
-	let material = new THREE.MeshNormalMaterial();
-	let box = new THREE.Mesh( geometry, material );
+	let light = new THREE.PointLight( 0xffffff, 1,1000);
+	light.position.set(2.52,10,0);
 	
-
-	var grid = new THREE.GridHelper (10,10,'red','white');
 	circle.rotation.x = -Math.PI / 2;
-	markerRoot.add(circle,box);
-	markerRoot.add(grid);
-
+	markerRoot.add(circle,pointer );
+	markerRoot.add(light);
 	
 	return markerRoot;
 }	
@@ -211,7 +199,7 @@ function animate() {
 		else 
 			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
 
-		markerHiro.children[0].rotation.z = angle;
+		markerHiro.children[1].rotation.z = angle;
 	}
 
 	if(isActive && nowRotateSpeed === 0.0){
