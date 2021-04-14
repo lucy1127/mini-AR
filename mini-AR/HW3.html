@@ -128,7 +128,7 @@ function init() {
     // Function when resource is loaded
     function(texture) {
    
-       button = new Button(-halfW/2,-halfH/2,halfH/3,'cyan',texture);
+       button = new Button(-hW/2,-hH/2,hH/3,'cyan',texture);
        sceneHUD.add(button.mesh);
       },
 	);
@@ -184,7 +184,7 @@ function addMarkerHiro(){
 	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
 	let pointer = new THREE.Mesh( geometry, material );
 	pointer.rotation.x = Math.PI/2;
-	pointer.rotation.z = Math.PI;
+	pointer.rotation.y = Math.PI;
 	
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
@@ -221,7 +221,7 @@ function animate() {
 	
 	renderer.clear();
 	renderer.render (scene, camera);	
-	button.material.visible = markerRoot.visible;
+	button.mesh.material.visible = markerRoot.visible;
 	renderer.render (sceneHUD, cameraHUD);
 }
 
