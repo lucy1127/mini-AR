@@ -118,8 +118,20 @@ function init() {
 
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
 	
-	button = new Button(0,-hH / 2, hH / 3);
-	sceneHUD.add(button.mesh);
+	var loader = new THREE.TextureLoader();
+	loader.setCrossOrigin('');
+  
+	// load a resource
+	loader.load(
+    // resource URL
+    'https://i.imgur.com/b6I5kb7.png',
+    // Function when resource is loaded
+    function(texture) {
+   
+       button = new Button(-halfW/2,-halfH/2,halfH/3,'cyan',texture);
+       sceneHUD.add(button.mesh);
+      },
+	);
 
 	// 按鈕event
 	
@@ -168,10 +180,10 @@ function addMarkerHiro(){
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
 	
-	let geometry = new THREE.ConeGeometry( 0.4, 1, 2 );
+	let geometry = new THREE.ConeGeometry( 0.4, 0.5, 1 );
 	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
 	let pointer = new THREE.Mesh( geometry, material );
-	pointer .rotation.x = Math.PI/2;
+	pointer.rotation.x = Math.PI/2;
 	
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
