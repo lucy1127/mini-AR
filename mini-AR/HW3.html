@@ -173,18 +173,18 @@ function addMarkerHiro(){
 	// 圓盤要求 30.6/11
 	let circle = new THREE.Object3D();
 	
-	let geometry0 = new THREE.CircleGeometry( 2, 32, Math.PI/2, 2*Math.PI/3);
-	let material0 = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide} );
+	let geometry0 = new THREE.CircleGeometry( 2, 32, Math.PI/2*3, 2*Math.PI/3);
+	let material0 = new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide} );
 	let circle0 = new THREE.Mesh( geometry0, material0 );	
 	circle.add( circle0 );  
 
-	let geometry1 = new THREE.CircleGeometry( 2, 32, Math.PI/2 + 2/3*Math.PI, 2*Math.PI/3);
-	let material1 = new THREE.MeshBasicMaterial( { color: 0xff0000 , side: THREE.DoubleSide} );
+	let geometry1 = new THREE.CircleGeometry( 2, 32, Math.PI/6, 2*Math.PI/3);
+	let material1 = new THREE.MeshBasicMaterial( { color: 0x00ff00 , side: THREE.DoubleSide} );
 	let circle1 = new THREE.Mesh( geometry1, material1 );
 	circle.add( circle1 );  
    
-	let geometry2 = new THREE.CircleGeometry( 2, 32, Math.PI/2 - 2/3*Math.PI, 2*Math.PI/3);
-	let material2 = new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } );
+	let geometry2 = new THREE.CircleGeometry( 2, 32, Math.PI/3*2.5, 2*Math.PI/3);
+	let material2 = new THREE.MeshBasicMaterial( { color: 0x0000ff, side: THREE.DoubleSide } );
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
 	
@@ -214,7 +214,9 @@ function animate() {
 	stats.update();
 	
 	if( arToolkitSource.ready === false )	return
-	arToolkitContext.update( arToolkitSource.domElement )
+	arToolkitContext.update( arToolkitSource.domElement );
+	
+	button.mesh.material.visible = markerRoot.visible;
 	
 	//圓盤轉動
 	if(isActive){
@@ -274,12 +276,12 @@ function judge(){
 		$('#text').css ('color', 'blue');
 		$('#text').text('blue');
 	} else if(angle > -Math.PI * 2 / 3 && angle <= Math.PI * 4 / 3){
-		$('#text').css ('color', 'red');
-		$('#text').text('red');
+		$('#text').css ('color', 'green');
+		$('#text').text('green');
 	}
 	else {
-		$('#text').css ('color', 'yellow');
-		$('#text').text('yellow');
+		$('#text').css ('color', 'red');
+		$('#text').text('red');
 	}
 	isActive = false;
 }
