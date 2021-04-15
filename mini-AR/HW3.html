@@ -121,6 +121,22 @@ function init() {
 
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
 	
+	let loader = new THREE.TextureLoader();
+	loader.setCrossOrigin(''); //
+	loader.load(
+    	// resource URL
+    	'https://i.imgur.com/r2bHPXw.png',
+
+    	// Function when resource is loaded
+    	function(texture) {
+      		console.log ('texture loaded ...')
+			var buttonSize = hH/3; // radius
+			button = new Button (hW/2, -hH/2, buttonSize, 'white', texture); 
+			sceneHUD.add (button.mesh);
+    	},
+
+  	);
+	
 	button = new Button(0,-hH / 2, hH / 3);
 	sceneHUD.add(button.mesh);
 
