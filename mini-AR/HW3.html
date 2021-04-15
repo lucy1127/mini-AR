@@ -195,6 +195,8 @@ function addMarkerHiro(){
 	let pointer = new THREE.Mesh( geometry, material );
 	group.add(pointer);
 	
+	group.rotation.x = -Math.PI/2;
+	
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
 	group.add(light);
