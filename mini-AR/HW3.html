@@ -8,6 +8,9 @@
 <!-- ar.js -->
 <script src="../build/ar.js"></script>
 <script>THREEx.ArToolkitContext.baseURL = '../'</script>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.0/jquery.js"></script>
 
 <body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
 <div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
@@ -30,7 +33,7 @@ var markerHiro;
 
 var angle = 0;
 var isRed = true,isActive = false;
-var markerRoot;
+var markerRoot,group;
 
 $('#toggle').click ( //轉盤的結果(指針指向的顏色)以<p>字串呈現
 	toggle
@@ -118,22 +121,9 @@ function init() {
 
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
 	
-	var loader = new THREE.TextureLoader();
-	loader.setCrossOrigin('');
-  
-	// load a resource
-	loader.load(
-    // resource URL
-    'https://i.imgur.com/r2bHPXw.png',
-    // Function when resource is loaded
-    function(texture) {
-   
-       button = new Button(-hW/2,-hH/2,hH/3,'cyan',texture);
-       sceneHUD.add(button.mesh);
-      },
-	);
+	button = new Button(0,-hH / 2, hH / 3);
+	sceneHUD.add(button.mesh);
 
-	// 按鈕event
 	
 	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
 
@@ -154,8 +144,10 @@ function init() {
 	
 function addMarkerHiro(){
 	
+	group = new THREE.Group();
 	markerRoot = new THREE.Group()
-
+	scene.add (group);  
+	
 	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
 		type : 'pattern',
 		patternUrl : THREEx.ArToolkitContext.baseURL + '/data/data/patt.hiro'
@@ -180,18 +172,20 @@ function addMarkerHiro(){
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
 	
+	circle.rotation.x = -Math.PI / 2;
+	
 	let geometry = new THREE.ConeGeometry( 0.4, 0.5, 1 );
 	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
 	let pointer = new THREE.Mesh( geometry, material );
-	pointer.rotation.x = Math.PI/2;
-	pointer.rotation.y = Math.PI;
+	group.add(pointer);
 	
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
+	group.add(light);
+
 	
-	circle.rotation.x = -Math.PI / 2;
-	markerRoot.add(circle,pointer);
-	markerRoot.add(light);
+	markerRoot.add(circle,group);
+
 	
 	return markerRoot;
 }	
@@ -212,7 +206,7 @@ function animate() {
 		else 
 			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
 
-		markerHiro.children[1].rotation.z = angle;
+		markerHiro.children[0].rotation.z = angle;
 	}
 
 	if(isActive && nowRotateSpeed === 0.0){
