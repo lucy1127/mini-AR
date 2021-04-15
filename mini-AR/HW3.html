@@ -174,7 +174,7 @@ function addMarkerHiro(){
 	
 	circle.rotation.x = -Math.PI / 2;
 	
-	let geometry = new THREE.ConeGeometry( 0.4, 0.5, 1 );
+	let geometry = new THREE.ConeGeometry( 0.4, 2, 4 );
 	let material = new THREE.MeshPhongMaterial({color:"#D3D3D3"});
 	let pointer = new THREE.Mesh( geometry, material );
 	group.add(pointer);
@@ -206,7 +206,7 @@ function animate() {
 		else 
 			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
 
-		markerHiro.children[0].rotation.z = angle;
+		markerHiro.children[1].rotation.z = angle;
 	}
 
 	if(isActive && nowRotateSpeed === 0.0){
