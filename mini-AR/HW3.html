@@ -144,7 +144,7 @@ function init() {
 		$('#iOSdevice').text ('use iPhone/iPad')
 
 		// for those with touch screen
-    	document.addEventListener('touchstart', onTouchDown, false);
+    	document.addEventListener('touchstart', onTouchStart, false);
     	document.addEventListener('touchmove', onTouchDown, false);  // same callback
     } else {
     	$('#iOSdevice').text ('regular')
@@ -237,7 +237,7 @@ function animate() {
 	renderer.render (sceneHUD, cameraHUD);
 }
 
-function onTouchDown(event){
+function onTouchStart(event){
 	if(event.touches.length == 1){
 		event.preventDefault();
 		let x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
@@ -245,6 +245,10 @@ function onTouchDown(event){
 
 		pickCompute(x,y);
 	}
+}
+function onTouchEnd (event) {
+	event.preventDefault();
+	speedUpFlag = false;
 }
 function onMouseDown(event){
 	event.preventDefault();
