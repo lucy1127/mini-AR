@@ -148,9 +148,8 @@ function init() {
     	document.addEventListener('touchmove', onTouchDown, false);  // same callback
     } else {
     	$('#iOSdevice').text ('regular')
-
-		// mousemove
-		document.addEventListener( 'mousemove', onMouseDown, false );
+		document.addEventListener( 'mousedown', onMouseDown, false );
+		document.addEventListener( 'mouseup', onMouseUp, false );
     }
 
 }
@@ -170,17 +169,17 @@ function addMarkerHiro(){
 	// 圓盤要求 30.6/11
 	let circle = new THREE.Object3D();
 	
-	let geometry0 = new THREE.CircleGeometry( 2, 32, Math.PI/2*3, 2*Math.PI/3);
+	let geometry0 = new THREE.CircleGeometry( 2, 32, Math.PI/2, 2*Math.PI/3);
 	let material0 = new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide} );
 	let circle0 = new THREE.Mesh( geometry0, material0 );	
 	circle.add( circle0 );  
 
-	let geometry1 = new THREE.CircleGeometry( 2, 32, Math.PI/6, 2*Math.PI/3);
+	let geometry1 = new THREE.CircleGeometry( 2, 32, Math.PI/2 + 2*Math.PI/3, 2*Math.PI/3);
 	let material1 = new THREE.MeshBasicMaterial( { color: 0x00ff00 , side: THREE.DoubleSide} );
 	let circle1 = new THREE.Mesh( geometry1, material1 );
 	circle.add( circle1 );  
    
-	let geometry2 = new THREE.CircleGeometry( 2, 32, Math.PI/3*2.5, 2*Math.PI/3);
+	let geometry2 = new THREE.CircleGeometry( 2, 32, Math.PI/2 - 2*Math.PI/3, 2*Math.PI/3);
 	let material2 = new THREE.MeshBasicMaterial( { color: 0x0000ff, side: THREE.DoubleSide } );
 	let circle2 = new THREE.Mesh( geometry2, material2 );
 	circle.add( circle2 );
@@ -193,7 +192,6 @@ function addMarkerHiro(){
 	group.add(pointer);
 	
 	group.rotation.x = -Math.PI/2;
-	group.rotation.z = -Math.PI;
 	
 	let light = new THREE.PointLight( 0xffffff, 1,1000);
 	light.position.set(2.52,10,0);
@@ -202,7 +200,6 @@ function addMarkerHiro(){
 	
 	markerRoot.add(circle,group);
 
-	
 	return markerRoot;
 }	
 
@@ -224,7 +221,7 @@ function animate() {
 		else 
 			nowRotateSpeed = Math.max(nowRotateSpeed - 0.001, 0.0);
 
-		markerHiro.children[1].rotation.z = angle;
+		markerHiro.children[1].rotation.y = angle;
 	}
 
 	if(isActive && nowRotateSpeed === 0.0){
@@ -250,6 +247,7 @@ function onTouchEnd (event) {
 	event.preventDefault();
 	speedUpFlag = false;
 }
+
 function onMouseDown(event){
 	event.preventDefault();
 	let x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -257,14 +255,19 @@ function onMouseDown(event){
 
 	pickCompute(x,y);
 }
+function onMouseUp(event){
+	event.preventDefault();
+	speedUpFlag = false;
+}
 
 function pickCompute(x, y){
 	let HUD_coord = [hW * x, hH * y];
 	let dist = button.d2To(HUD_coord);
 	let printStr = [dist.toFixed(2), HUD_coord[0].toFixed(2), HUD_coord[1].toFixed(2)];
 
-	if(dist < button.size){
+	if(dist <= button.size){
 		toggle();
+		//click = true;
 	}
 	else {
 		console.log('not hit');
