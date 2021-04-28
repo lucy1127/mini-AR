@@ -142,7 +142,7 @@ function init() {
 
 		// for those with touch screen
     	document.addEventListener('touchstart', onTouchStart, false);
-    	document.addEventListener('touchmove', onTouchDown, false);  // same callback
+    	document.addEventListener('touchend', onTouchEnd, false);  // same callback
     } else {
     	$('#iOSdevice').text ('regular')
 		document.addEventListener( 'mousedown', onMouseDown, false );
