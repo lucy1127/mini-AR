@@ -277,15 +277,15 @@ function pickCompute(x, y){
 function judge(){
 	angle %= Math.PI * 2;
 	if(angle > 0 && angle <= Math.PI * 2 / 3){
-		$('#text').css ('color', 'blue');
-		$('#text').text('blue');
+		$('#text').css ('color', 'red');
+		$('#text').text('red');
 	} else if(angle > -Math.PI * 2 / 3 && angle <= Math.PI * 4 / 3){
 		$('#text').css ('color', 'green');
 		$('#text').text('green');
 	}
 	else {
-		$('#text').css ('color', 'red');
-		$('#text').text('red');
+		$('#text').css ('color', 'blue');
+		$('#text').text('blue');
 	}
 	isActive = false;
 }
