@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+<!-- three.js library -->
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src='../examples/vendor/three.js/build/three.min.js'></script>
+<script src="../examples/vendor/three.js/examples/js/libs/stats.min.js"></script>
+<!-- ar.js -->
+<script src="../build/ar.js"></script>
+<script>THREEx.ArToolkitContext.baseURL = '../'</script>
+
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+<div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
+<a href="https://github.com/jeromeetienne/AR.js/" target="_blank">AR.js</a>
+	 - three.js<br>
+Minimal Version<br>
+<p id="text" style ="color:red">
+</p>
+</div>
+
+<script>
+
+var renderer, scene, camera,stats;
+var sceneHUD, cameraHUD;
+var button, hW, hH;
+var arToolKitSource, arToolKitContext;
+
+var sprite;
+var baseS = 0,baseT = 0;
+var uvOffsetArray = [];
+
+
+class Button{
+	constructor(cx, cy, size, colorString = 'yellow', map = null){
+		this.centerX = cx;
+		this.centerY = cy;
+		this.size = size;
+		let material = new THREE.MeshBasicMaterial({
+			color: colorString,
+			transparent: true,
+			opacity: 0.7
+		});
+
+		if(map)
+			material.map = map;
+
+		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36), material);
+		this.mesh.position.set(cx, cy, 0);
+	}
+
+	setLocation(lx, ly){
+		this.mesh.position.set(lx, ly, 0);
+	}
+
+	d2To(v){
+		return Math.sqrt((v[0] - this.centerX) ** 2 + (v[1] - this.centerY) ** 2);
+	}
+}
+
+init();
+animate();
+
+function init() {
+
+	renderer = new THREE.WebGLRenderer({alpha: true});
+	renderer.autoClear = false;
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+	scene	= new THREE.Scene();
+	camera = new THREE.Camera();
+	scene.add(camera);
+
+	arToolkitSource = new THREEx.ArToolkitSource({sourceType : 'webcam',})
+	arToolkitSource.init(function onReady(){onResize()})
+	
+	window.addEventListener('resize', function(){onResize()})
+	function onResize(){
+		arToolkitSource.onResize()	
+		arToolkitSource.copySizeTo(renderer.domElement)	
+		if( arToolkitContext.arController !== null ){
+			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
+		}	
+	}
+	console.log(THREEx.ArToolkitContext.baseURL);
+	arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '/data/data/camera_para.dat',
+		detectionMode: 'mono',
+		maxDetectionRate: 30,
+		canvasWidth: 80*3,
+		canvasHeight: 60*3,
+	})
+	arToolkitContext.init(function onCompleted(){
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+	})
+
+	// HUD介面
+	sceneHUD = new THREE.Scene();
+	hW = window.innerWidth / 2;
+	hH = window.innerHeight / 2;
+
+	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
+	
+	let loader = new THREE.TextureLoader();
+	loader.setCrossOrigin(''); //
+	loader.load(
+    	// resource URL
+    	'https://i.imgur.com/r2bHPXw.png',
+
+    	// Function when resource is loaded
+    	function(texture) {
+      		console.log ('texture loaded ...')
+			var buttonSize = hH/3; // radius
+			button = new Button (hW/2, -hH/2, buttonSize, 'white', texture); 
+			sceneHUD.add (button.mesh);
+    	},
+
+  	);
+	
+	setUpOffsetArray();
+	
+	
+    var loader1 = new THREE.TextureLoader();
+
+    loader1.load(
+        './boom.png',
+        function(texture) {
+            var texMat = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            buildSprite(texMat);
+        },
+        function(xhr) {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
+        function(xhr) {
+            console.log('An error happened');
+        }
+    );
+
+}
+function setUpOffsetArray() {
+  var rowCount = 4; // 4x8 sprites
+  var colCount = 8;
+  for (var i = 0; i < rowCount; i++) {
+    var row = [];
+    for (var j = 0; j < colCount; j++)
+      row.push(new THREE.Vector2(j * 0.125, - 0.25 * i));
+    uvOffsetArray.push(row);
+  }
+}
+
+function buildSprite(texMat) {
+
+  var geometry = new THREE.Geometry();
+  geometry.vertices.push(
+    new THREE.Vector3(-15, -15, 0),
+    new THREE.Vector3(15, -15, 0),
+    new THREE.Vector3(15, 15, 0),
+    new THREE.Vector3(-15, 15, 0)
+  );
+
+  var face;
+  face = new THREE.Face3(0, 1, 2);
+  geometry.faces.push(face);
+  face = new THREE.Face3(0, 2, 3);
+  geometry.faces.push(face);
+
+	// upper left corner
+	var uv0 = new THREE.Vector2(0.0,0.75);
+	var uv1 = new THREE.Vector2(0.125,0.75);
+	var uv2 = new THREE.Vector2(0.125,1.0);
+	var uv3 = new THREE.Vector2(0.0,1.0);
+  
+  geometry.faceVertexUvs[0].push([uv0, uv1, uv2]);
+  geometry.faceVertexUvs[0].push([uv0, uv2, uv3]);
+
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+
+  sprite = new THREE.Mesh(geometry, texMat);
+}
+function spriteAnimate(sprite) {
+	sprite.body.material.map.offset.copy (uvOffsetArray[sprite.baseS][sprite.baseT]);  
+    sprite.baseT = (sprite.baseT + 1) % 8;
+    if (sprite.baseT === 0) {
+        if(sprite.baseS + 1 === 4)
+            scene.remove(sprite.body);
+
+        sprite.baseS = (sprite.baseS + 1) % 4;
+    }
+}
+
+	
+function animate() {
+	requestAnimationFrame (animate);
+	stats.update();
+	
+	if( arToolkitSource.ready === false )	return
+	arToolkitContext.update( arToolkitSource.domElement );
+
+	
+
+	renderer.clear();
+	renderer.render (scene, camera);	
+	renderer.render (sceneHUD, cameraHUD);
+}
+
+
+</script></body>
