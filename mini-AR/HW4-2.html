@@ -22,10 +22,11 @@ Minimal Version<br>
 
 var renderer, scene, camera,stats;
 var sceneHUD, cameraHUD;
-var button, hW, hH;
-var arToolKitSource, arToolKitContext;
+var button,group,hW,hH;
+var arToolKitSource, arToolKitContext, markerHiro;
 
-var sprite;
+var isBoom = false; 
+var sprite,size = 2;
 var baseS = 0,baseT = 0;
 var uvOffsetArray = [];
 
@@ -99,14 +100,15 @@ function init() {
 	arToolkitContext.init(function onCompleted(){
 		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
 	})
+	
+	clock = new THREE.Clock();
 
 	// HUD介面
 	sceneHUD = new THREE.Scene();
 	hW = window.innerWidth / 2;
 	hH = window.innerHeight / 2;
-
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
-	
+	//button
 	let loader = new THREE.TextureLoader();
 	loader.setCrossOrigin(''); //
 	loader.load(
@@ -120,36 +122,89 @@ function init() {
 			button = new Button (hW/2, -hH/2, buttonSize, 'white', texture); 
 			sceneHUD.add (button.mesh);
     	},
-
   	);
+	//target
+	markerHiro = addMarkerHiro();
+	scene.add (markerHiro); 
 	
+	//boom
 	setUpOffsetArray();
+	sprite = buildSprite();
+	group.add(sprite);
 	
-	
-    var loader1 = new THREE.TextureLoader();
+	//touch & mouse
+	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
 
-    loader1.load(
-        './boom.png',
-        function(texture) {
-            var texMat = new THREE.MeshBasicMaterial({
-                map: texture,
-                transparent: true,
-                side: THREE.DoubleSide
-            });
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-            buildSprite(texMat);
-        },
-        function(xhr) {
-            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-        },
-        function(xhr) {
-            console.log('An error happened');
-        }
-    );
+	if (_iOSDevice) {
+		$('#iOSdevice').text ('use iPhone/iPad')
+
+		// for those with touch screen
+    	document.addEventListener('touchstart', onTouchStart, false);
+    	document.addEventListener('touchend', onTouchEnd, false);  // same callback
+    } else {
+    	$('#iOSdevice').text ('regular')
+		document.addEventListener( 'mousedown', onMouseDown, false );
+		document.addEventListener( 'mouseup', onMouseUp, false );
+    }
 
 }
+function addMarkerHiro(){
+	
+	let markerRoot = new THREE.Group()
+	
+	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+		type : 'pattern',
+		patternUrl : THREEx.ArToolkitContext.baseURL + '/data/data/patt.hiro'
+	})
+	
+	group = new THREE.Group();
+	
+	let geometry = new THREE.PlaneGeometry(2, 2);
+	let material = new THREE.MeshBasicMaterial();
+	let target = new THREE.Mesh(geometry,material);
+	target.rotation.x = -Math.PI/2;
+	let loader = new THREE.TextureLoader();
+	loader.setCrossOrigin(''); //
+	loader.load(
+    	// resource URL
+    	'https://i.imgur.com/mESs5e2.png',
+    	// Function when resource is loaded
+    	function(texture) {
+      		target.material = new THREE.MeshBasicMaterial( { map: texture } );
+			target.material.transparent = true;
+    	},
+  	);
+	group.add(target);
+	
+	markerRoot.add(group);
+	return markerRoot;
+}	
+function onTouchStart(event){
+	if(event.touches.length == 1){
+		event.preventDefault();
+		let x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
+		let y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
+		
+		isBoom = true;
+	}
+}
+function onTouchEnd (event) {
+	event.preventDefault();
+}
+
+function onMouseDown(event){
+	event.preventDefault();
+}
+function onMouseUp(event){
+
+	if (!isBoom) {
+
+		isBoom = true;
+		setTimeout(spriteAnimate, 0);
+	}
+}
 function setUpOffsetArray() {
+  uvOffsetArray = [];
   var rowCount = 4; // 4x8 sprites
   var colCount = 8;
   for (var i = 0; i < rowCount; i++) {
@@ -160,48 +215,66 @@ function setUpOffsetArray() {
   }
 }
 
-function buildSprite(texMat) {
-
-  var geometry = new THREE.Geometry();
-  geometry.vertices.push(
-    new THREE.Vector3(-15, -15, 0),
-    new THREE.Vector3(15, -15, 0),
-    new THREE.Vector3(15, 15, 0),
-    new THREE.Vector3(-15, 15, 0)
-  );
-
-  var face;
-  face = new THREE.Face3(0, 1, 2);
-  geometry.faces.push(face);
-  face = new THREE.Face3(0, 2, 3);
-  geometry.faces.push(face);
-
-	// upper left corner
-	var uv0 = new THREE.Vector2(0.0,0.75);
-	var uv1 = new THREE.Vector2(0.125,0.75);
-	var uv2 = new THREE.Vector2(0.125,1.0);
-	var uv3 = new THREE.Vector2(0.0,1.0);
+function BillboardAim(target) {
+	
+  let localCamera = markerHiro.worldToLocal(new THREE.Vector3());
+  let point = new THREE.Vector3(0, 0, 1);
+  let angle = point.angleTo(localCamera);
+  let axis  = new THREE.Vector3();
+  axis.crossVectors(point, localCamera).normalize();
+  target.quaternion.setFromAxisAngle(axis, angle);
   
-  geometry.faceVertexUvs[0].push([uv0, uv1, uv2]);
-  geometry.faceVertexUvs[0].push([uv0, uv2, uv3]);
+}
+function buildSprite() {
 
-  geometry.computeBoundingSphere();
-  geometry.computeFaceNormals();
-  geometry.computeVertexNormals();
+	let vertices = [-size/2, -size/2, 0, size/2, -size/2, 0, size/2, size/2, 0, -size/2, size/2, 0];
+	var geometry = new THREE.BufferGeometry();
+	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute(vertices, 3) );
 
-  sprite = new THREE.Mesh(geometry, texMat);
+	let indices = [0, 1, 2, 0, 2, 3];
+	geo.setIndex(indices);
+
+	let uvs = [];
+	uvs.push(0, 0.75, 0.125, 0.75, 0.125, 1, 0, 1);
+	geo.setAttribute( 'uv', new  THREE.Float32BufferAttribute(uvs, 2) );
+
+	let material = new THREE.MeshBasicMaterial();
+	let boom = new THREE.Mesh( geometry, material );
+	boom.position.y = 0.5;
+	loader.load(
+	'https://i.imgur.com/j5NYK55.png',
+	function ( texture ) {
+	  boom.material = new THREE.MeshBasicMaterial( { map: texture } );
+	  boom.material.transparent = true;
+	}
+	);
+
+	return boom;
 }
 function spriteAnimate(sprite) {
-	sprite.body.material.map.offset.copy (uvOffsetArray[sprite.baseS][sprite.baseT]);  
-    sprite.baseT = (sprite.baseT + 1) % 8;
-    if (sprite.baseT === 0) {
-        if(sprite.baseS + 1 === 4)
-            scene.remove(sprite.body);
 
-        sprite.baseS = (sprite.baseS + 1) % 4;
-    }
+	if (sprite===undefined)
+		return;
+		
+	baseS = baseT = 0;
+	setTimeout(_spriteAnimate, 100);
 }
+function _spriteAnimate() {
 
+	sprite.material.map.offset.copy(uvOffsetArray[baseS][baseT]);
+	baseT = (baseT + 1) % 8;
+	
+	if (baseT==0) 
+		baseS = (baseS + 1) % 4;
+	
+	if (baseS!= 3 || baseT != 7)
+		setTimeout(_spriteAnimate, 100);
+	else {
+		sprite.material.map.offset.copy(uvOffsetArray[0][0]);
+		isBoom = false;
+	}
+
+}
 	
 function animate() {
 	requestAnimationFrame (animate);
@@ -209,8 +282,9 @@ function animate() {
 	
 	if( arToolkitSource.ready === false )	return
 	arToolkitContext.update( arToolkitSource.domElement );
-
 	
+	if(isBoom)
+		BillboardAim(sprite);
 
 	renderer.clear();
 	renderer.render (scene, camera);	
