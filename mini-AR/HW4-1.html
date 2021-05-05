@@ -100,9 +100,10 @@ function animate() {
 	
 	drawLine();
 
-	if(keyboard.down('space'))
-		shooting = true;
-			
+	if(keyboard.down('space')){
+		if(!shooting)
+			shooting = true;
+	}
 	if(shooting){
 		
 		if (pos === undefined) {
@@ -110,9 +111,11 @@ function animate() {
 			return;
 		}
 		
-		if (pos.y < 0)
+		if (pos.y < 0){	
+			scene.remove(ball);
+			shooting = false;
 			return;
-
+		}
 		// Euler's method
 		vel.add (force.clone().multiplyScalar(dt));
 		pos.add (vel.clone().multiplyScalar(dt));
