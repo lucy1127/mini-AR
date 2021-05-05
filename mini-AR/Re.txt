@@ -2,11 +2,9 @@
 <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
 <!-- three.js library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r127/three.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
-<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
-<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src='../examples/vendor/three.js/build/three.min.js'></script>
+<script src="../examples/vendor/three.js/examples/js/libs/stats.min.js"></script>
 <!-- ar.js -->
 <script src="../build/ar.js"></script>
 <script>THREEx.ArToolkitContext.baseURL = '../'</script>
@@ -24,13 +22,41 @@ Minimal Version<br>
 
 var renderer, scene, camera,stats;
 var sceneHUD, cameraHUD;
-var button,target,hW,hH;
+var button,group,hW,hH;
 var arToolKitSource, arToolKitContext, markerHiro;
 
 var isBoom = false; 
-var sprite,size = 2,loader;
+var sprite,size = 2;
 var baseS = 0,baseT = 0;
 var uvOffsetArray = [];
+
+
+class Button{
+	constructor(cx, cy, size, colorString = 'yellow', map = null){
+		this.centerX = cx;
+		this.centerY = cy;
+		this.size = size;
+		let material = new THREE.MeshBasicMaterial({
+			color: colorString,
+			transparent: true,
+			opacity: 0.7
+		});
+
+		if(map)
+			material.map = map;
+
+		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36), material);
+		this.mesh.position.set(cx, cy, 0);
+	}
+
+	setLocation(lx, ly){
+		this.mesh.position.set(lx, ly, 0);
+	}
+
+	d2To(v){
+		return Math.sqrt((v[0] - this.centerX) ** 2 + (v[1] - this.centerY) ** 2);
+	}
+}
 
 init();
 animate();
@@ -76,37 +102,35 @@ function init() {
 	})
 	
 	clock = new THREE.Clock();
-	loader = new THREE.TextureLoader();
 
 	// HUD介面
 	sceneHUD = new THREE.Scene();
 	hW = window.innerWidth / 2;
 	hH = window.innerHeight / 2;
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
-	//target
-	loader.load(
-		'https://i.imgur.com/mESs5e2.png',
-		function(texture ){
-		  target = new THREE.Mesh(new THREE.CircleGeometry(0.5, 36), new THREE.MeshBasicMaterial({ map: texture }));
-		  target.rotateX(-Math.PI / 2);
-		  marker.add(target);
-		}
-	);
 	//button
+	let loader = new THREE.TextureLoader();
+	loader.setCrossOrigin(''); //
 	loader.load(
-		'https://i.imgur.com/r2bHPXw.png',
-		function(texture ){
-		  button = new THREE.Mesh(new THREE.CircleGeometry(1, 36), new THREE.MeshBasicMaterial({ map: texture }));
-		  button.position.set(0, -5, 0);
-		  sceneHUD.add(button);
-		}
-	);
-	
+    	// resource URL
+    	'https://i.imgur.com/r2bHPXw.png',
+
+    	// Function when resource is loaded
+    	function(texture) {
+      		console.log ('texture loaded ...')
+			var buttonSize = hH/3; // radius
+			button = new Button (hW/2, -hH/2, buttonSize, 'white', texture); 
+			sceneHUD.add (button.mesh);
+    	},
+  	);
+	//target
 	markerHiro = addMarkerHiro();
 	scene.add (markerHiro); 
 	
 	//boom
-	 initSprite(marker);
+	setUpOffsetArray();
+	sprite = buildSprite();
+	group.add(sprite);
 	
 	//touch & mouse
 	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
@@ -130,18 +154,38 @@ function addMarkerHiro(){
 	
 	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
 		type : 'pattern',
-		patternUrl : THREEx.ArToolkitContext.baseURL + '../data/data/patt.hiro'
+		patternUrl : 'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
 	})
 	
-
+	group = new THREE.Group();
+	
+	let geometry = new THREE.PlaneGeometry(2, 2);
+	let material = new THREE.MeshBasicMaterial();
+	let target = new THREE.Mesh(geometry,material);
+	target.rotation.x = -Math.PI/2;
+	let loader = new THREE.TextureLoader();
+	loader.setCrossOrigin(''); //
+	loader.load(
+    	// resource URL
+    	'https://i.imgur.com/dRW6CCO.png',
+    	// Function when resource is loaded
+    	function(texture) {
+      		target.material = new THREE.MeshBasicMaterial( { map: texture } );
+			target.material.transparent = true;
+    	},
+  	);
+	group.add(target);
+	
+	markerRoot.add(group);
 	return markerRoot;
 }	
 function onTouchStart(event){
-	if (event.touches.length == 1) {
+	if(event.touches.length == 1){
 		event.preventDefault();
-		let ndcX = (event.clientX / window.innerWidth) * 2 - 1;
-		let ndcY = -(event.clientY / window.innerHeight) * 2 + 1;
-		pickCompute(ndcX, ndcY);
+		let x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
+		let y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
+		
+		isBoom = true;
 	}
 }
 function onTouchEnd (event) {
@@ -150,20 +194,14 @@ function onTouchEnd (event) {
 
 function onMouseDown(event){
 	event.preventDefault();
-	let ndcX = (event.clientX / window.innerWidth) * 2 - 1;
-	let ndcY = -(event.clientY / window.innerHeight) * 2 + 1;
-	pickCompute(ndcX, ndcY);
 }
 function onMouseUp(event){
-	event.preventDefault();
-}
-function pickCompute(ndcX, ndcY){
-	// use 2D algorithm
-	const d2To = (v1, v2) => Math.sqrt(v1 ** 2 + (v2 - (-5)) ** 2);
-	const dist = d2To(halfW * ndcX, halfH * ndcY);
-	if (dist < 1)
+
+	if (!isBoom) {
+
+		isBoom = true;
 		setTimeout(spriteAnimate, 0);
-	
+	}
 }
 function setUpOffsetArray() {
   uvOffsetArray = [];
@@ -177,57 +215,41 @@ function setUpOffsetArray() {
   }
 }
 
-function buildSprite(texMat, markerRoot) {
+function BillboardAim(target) {
+	
+  let localCamera = markerHiro.worldToLocal(new THREE.Vector3());
+  let point = new THREE.Vector3(0, 0, 1);
+  let angle = point.angleTo(localCamera);
+  let axis  = new THREE.Vector3();
+  axis.crossVectors(point, localCamera).normalize();
+  target.quaternion.setFromAxisAngle(axis, angle);
+  
+}
+function buildSprite() {
 
-	let vertices = [-size/2, -size/2, 0, size/2, -size/2, 0,
-                    size/2, size/2, 0, -size/2, size/2, 0];
-	let geometry = new THREE.BufferGeometry();
-	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-		
-	let indices = [0,1,2, 0,2,3];
+	let vertices = [-size/2, -size/2, 0, size/2, -size/2, 0, size/2, size/2, 0, -size/2, size/2, 0];
+	var geometry = new THREE.BufferGeometry();
+	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute(vertices, 3) );
+
+	let indices = [0, 1, 2, 0, 2, 3];
 	geometry.setIndex(indices);
 
 	let uvs = [];
-	uvs.push (0,0.75, 0.125,0.75, 0.125,1, 0,1);  // LL of first frame: [0, 0.75]
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+	uvs.push(0, 0.75, 0.125, 0.75, 0.125, 1, 0, 1);
+	geometry.setAttribute( 'uv', new  THREE.Float32BufferAttribute(uvs, 2) );
 
-	geometry.computeBoundingSphere();
-    geometry.computeFaceNormals();
-    geometry.computeVertexNormals();
+	let material = new THREE.MeshBasicMaterial();
+	let boom = new THREE.Mesh( geometry, material );
+	boom.position.y = 0.5;
+	loader.load(
+	'https://i.imgur.com/j5NYK55.png',
+	function ( texture ) {
+	  boom.material = new THREE.MeshBasicMaterial( { map: texture } );
+	  boom.material.transparent = true;
+	}
+	);
 
-    sprite = new THREE.Mesh(geometry, texMat);
-    markerRoot.add(sprite);
-}
-
-function initSprite(markerGroup) {
-  setUpOffsetArray();
-
-  // load a resource
-  loader.load(
-    // resource URL
-    '6ePTx6p.png',
-
-    // Function when resource is loaded
-    function(texture) {
-      // Plane with default texture coordinates [0,1]x[0,1]
-      const texMat = new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true, // cutout texture: set transparent: true
-        side: THREE.DoubleSide
-      });
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-      buildSprite(texMat, markerGroup);
-    },
-    // Function called when download progresses
-    function(xhr) {
-      console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-    },
-    // Function called when download errors
-    function(xhr) {
-      console.log('An error happened');
-    }
-  );
+	return boom;
 }
 function spriteAnimate(sprite) {
 
@@ -247,17 +269,11 @@ function _spriteAnimate() {
 	
 	if (baseS!= 3 || baseT != 7)
 		setTimeout(_spriteAnimate, 100);
-	else 
+	else {
 		sprite.material.map.offset.copy(uvOffsetArray[0][0]);
-	
+		isBoom = false;
+	}
 
-}
-function onWindowResize() {
-	arToolkitSource.onResizeElement();
-	arToolkitSource.copyElementSizeTo(renderer.domElement);
-	if(arToolkitContext.arController !== null) 
-		arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
-	
 }
 	
 function animate() {
@@ -267,13 +283,7 @@ function animate() {
 	if( arToolkitSource.ready === false )	return
 	arToolkitContext.update( arToolkitSource.domElement );
 	
-		
-	let localCamera = markerHiro.worldToLocal(new THREE.Vector3());
-	let point = new THREE.Vector3(0, 0, 1);
-	let angle = point.angleTo(localCamera);
-	let axis  = new THREE.Vector3();
-	axis.crossVectors(point, localCamera).normalize();
-	target.quaternion.setFromAxisAngle(axis, angle);
+	BillboardAim(sprite);
 
 	renderer.clear();
 	renderer.render (scene, camera);	
