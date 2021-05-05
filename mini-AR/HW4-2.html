@@ -89,7 +89,7 @@ function init() {
 		function(texture ){
 		  target = new THREE.Mesh(new THREE.CircleGeometry(0.5, 36), new THREE.MeshBasicMaterial({ map: texture }));
 		  target.rotateX(-Math.PI / 2);
-		  marker.add(target);
+		  markerHiro.add(target);
 		}
 	);
 	//button
@@ -106,7 +106,7 @@ function init() {
 	scene.add (markerHiro); 
 	
 	//boom
-	 initSprite(marker);
+	 initSprite(markerHiro);
 	
 	//touch & mouse
 	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
