@@ -154,7 +154,7 @@ function addMarkerHiro(){
 	
 	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
 		type : 'pattern',
-		patternUrl : THREEx.ArToolkitContext.baseURL + '/data/data/patt.hiro'
+		patternUrl : 'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
 	})
 	
 	group = new THREE.Group();
@@ -167,7 +167,7 @@ function addMarkerHiro(){
 	loader.setCrossOrigin(''); //
 	loader.load(
     	// resource URL
-    	'https://i.imgur.com/mESs5e2.png',
+    	'https://i.imgur.com/dRW6CCO.png',
     	// Function when resource is loaded
     	function(texture) {
       		target.material = new THREE.MeshBasicMaterial( { map: texture } );
@@ -232,11 +232,11 @@ function buildSprite() {
 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute(vertices, 3) );
 
 	let indices = [0, 1, 2, 0, 2, 3];
-	geo.setIndex(indices);
+	geometry.setIndex(indices);
 
 	let uvs = [];
 	uvs.push(0, 0.75, 0.125, 0.75, 0.125, 1, 0, 1);
-	geo.setAttribute( 'uv', new  THREE.Float32BufferAttribute(uvs, 2) );
+	geometry.setAttribute( 'uv', new  THREE.Float32BufferAttribute(uvs, 2) );
 
 	let material = new THREE.MeshBasicMaterial();
 	let boom = new THREE.Mesh( geometry, material );
@@ -283,8 +283,7 @@ function animate() {
 	if( arToolkitSource.ready === false )	return
 	arToolkitContext.update( arToolkitSource.domElement );
 	
-	if(isBoom)
-		BillboardAim(sprite);
+	BillboardAim(sprite);
 
 	renderer.clear();
 	renderer.render (scene, camera);	
