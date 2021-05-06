@@ -2,7 +2,7 @@
 <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
 <!-- three.js library -->
-<script src='../examples/vendor/three.js/build/three.min.js'></script>
+<script src="https://alan8505.github.io/miniAR-HWRepository/three.js/r125/three.min.js"></script>
 <script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
 <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -82,7 +82,9 @@ function init() {
 	hH = 10;
 	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,10);
 	//button
-	loader.load(
+	loader1 = new THREE.TextureLoader();
+	loader1.setCrossOrigin('');
+	loader1.load(
 		'button.png',
 		 function ( texture ){
 			  button = new THREE.Mesh(new THREE.CircleGeometry(1, 36), new THREE.MeshBasicMaterial({ map: texture }));
@@ -90,6 +92,7 @@ function init() {
 			  sceneHUD.add(button);
 		}
 	);
+	
 	//target
 	loader.load(
 		'target.png',
@@ -144,7 +147,7 @@ function initSprite(markerGroup) {
     // Function when resource is loaded
     function(texture) {
       // Plane with default texture coordinates [0,1]x[0,1]
-      const texMat = new THREE.MeshBasicMaterial({
+      texMat = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true, // cutout texture: set transparent: true
         side: THREE.DoubleSide
@@ -164,10 +167,10 @@ function initSprite(markerGroup) {
   );
 }
 
-function buildSprite() {
+function buildSprite(texMat, markerGroup) {
 
 	let vertices = [-size/2, -size/2, 0, size/2, -size/2, 0, size/2, size/2, 0, -size/2, size/2, 0];
-	var geometry = new THREE.BufferGeometry();
+	const geometry = new THREE.BufferGeometry();
 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute(vertices, 3) );
 
 	let indices = [0, 1, 2, 0, 2, 3];
@@ -266,6 +269,7 @@ function animate() {
 		arToolkitContext.update(arToolkitSource.domElement);
 
 	button.material.visible = markerHiro.visible;
+	
 	renderer.clear();
 	renderer.render(scene, camera);
 	renderer.render(sceneHUD, cameraHUD);
@@ -276,8 +280,9 @@ function animate() {
 	let point = new THREE.Vector3(0,0,1);
 	let angle = point.angleTo (localCamera);
 	let axis = new THREE.Vector3();
-	axis.crossVectors(point, localCamera).normalize(); // normalization is IMPORTANT!
-	sprite.quaternion.setFromAxisAngle(axis, angle);
+	axis.crossVectors(point, localCamera).normalize();	// normalization is IMPORTANT!
+	target = markerHiro.children[0];
+	target.quaternion.setFromAxisAngle(axis, angle);
 }
 
 
