@@ -24,11 +24,38 @@ Minimal Version<br>
 var renderer, scene, camera,stats;
 var sceneHUD, cameraHUD,loader;
 var button,target,hW,hH;
-var arToolKitSource, arToolKitContext, markerHiro;
+var arToolKitSource, arToolKitContext, markerHiro,markerRoot;
 
 var sprite,size = 2;
 var baseS = 0,baseT = 0;
 var uvOffsetArray = [];
+
+class Button{
+	constructor(cx, cy, size, colorString = 'yellow', map = null){
+		this.centerX = cx;
+		this.centerY = cy;
+		this.size = size;
+		let material = new THREE.MeshBasicMaterial({
+			color: colorString,
+			transparent: true,
+			opacity: 0.7
+		});
+
+		if(map)
+			material.map = map;
+
+		this.mesh = new THREE.Mesh(new THREE.CircleGeometry(size, 36), material);
+		this.mesh.position.set(cx, cy, 0);
+	}
+
+	setLocation(lx, ly){
+		this.mesh.position.set(lx, ly, 0);
+	}
+
+	d2To(v){
+		return Math.sqrt((v[0] - this.centerX) ** 2 + (v[1] - this.centerY) ** 2);
+	}
+}
 
 init();
 animate();
@@ -44,8 +71,8 @@ function init() {
 	renderer.domElement.style.left = '0px'
 	document.body.appendChild( renderer.domElement );
 
-	//stats = new Stats();
-	//document.body.appendChild( stats.dom );
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
 	scene	= new THREE.Scene();
 	camera = new THREE.Camera();
 	scene.add(camera);
@@ -78,21 +105,27 @@ function init() {
 	loader.setCrossOrigin(''); //
 	// HUD介面
 	sceneHUD = new THREE.Scene();
-	hW = hH * (window.innerWidth / window.innerHeight);
-	hH = 10;
-	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,10);
-	//button
-	loader1 = new THREE.TextureLoader();
-	loader1.setCrossOrigin('');
-	loader1.load(
-		'button.png',
-		 function ( texture ){
-			  button = new THREE.Mesh(new THREE.CircleGeometry(1, 36), new THREE.MeshBasicMaterial({ map: texture }));
-			  button.position.set(0, -5, 0);
-			  sceneHUD.add(button);
-		}
-	);
+	hW = window.innerWidth / 2;
+	hH = window.innerHeight / 2;
+	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
 	
+	markerHiro = addMarkerHiro();
+	scene.add (markerHiro); 
+	
+	//button
+	let loader1 = new THREE.TextureLoader();
+	loader1.setCrossOrigin(''); //
+	loader1.load(
+    	// resource URL
+    	'button.png',
+    	// Function when resource is loaded
+    	function(texture) {
+			var buttonSize = hH/3; // radius
+			button = new Button (hW/2, -hH/2, buttonSize, 'white', texture); 
+			sceneHUD.add (button.mesh);
+    	},
+
+  	);
 	//target
 	loader.load(
 		'target.png',
@@ -102,9 +135,6 @@ function init() {
 			  markerHiro.add(target);
 		}
 	);
-	
-	markerHiro = addMarkerHiro();
-	scene.add (markerHiro); 
 	
 	//boom
 	initSprite(markerHiro);
@@ -127,7 +157,7 @@ function init() {
 }
 function addMarkerHiro(){
 	
-	let markerRoot = new THREE.Group()
+	markerRoot = new THREE.Group()
 	
 	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
 		type : 'pattern',
@@ -147,7 +177,7 @@ function initSprite(markerGroup) {
     // Function when resource is loaded
     function(texture) {
       // Plane with default texture coordinates [0,1]x[0,1]
-      texMat = new THREE.MeshBasicMaterial({
+      let texMat = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true, // cutout texture: set transparent: true
         side: THREE.DoubleSide
@@ -189,6 +219,7 @@ function buildSprite(texMat, markerGroup) {
 }
 
 function pickCompute(ndcX, ndcY){
+
 	// use 2D algorithm
 	let d2To = (v1, v2) => Math.sqrt(v1 ** 2 + (v2 - (-5)) ** 2);
 	let dist = d2To(hW * ndcX, hH * ndcY);
@@ -268,20 +299,20 @@ function animate() {
 	if(arToolkitSource.ready === false)	return
 		arToolkitContext.update(arToolkitSource.domElement);
 
-	button.material.visible = markerHiro.visible;
+	button.mesh.material.visible = markerRoot.visible;
 	
 	renderer.clear();
 	renderer.render(scene, camera);
 	renderer.render(sceneHUD, cameraHUD);
 
-	let localCamera = markerHiro.worldToLocal (new THREE.Vector3(0,0,0))
+	let localCamera = markerRoot.worldToLocal (new THREE.Vector3(0,0,0))
 
 	// to rotate (0,0,1) to localCamera [markerCoord]
 	let point = new THREE.Vector3(0,0,1);
 	let angle = point.angleTo (localCamera);
 	let axis = new THREE.Vector3();
 	axis.crossVectors(point, localCamera).normalize();	// normalization is IMPORTANT!
-	target = markerHiro.children[0];
+	target = markerRoot.children[0];
 	target.quaternion.setFromAxisAngle(axis, angle);
 }
 
