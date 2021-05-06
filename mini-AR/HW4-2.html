@@ -2,8 +2,7 @@
 <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
 <!-- three.js library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r127/three.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
+<script src='../examples/vendor/three.js/build/three.min.js'></script>
 <script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
 <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -23,12 +22,11 @@ Minimal Version<br>
 <script>
 
 var renderer, scene, camera,stats;
-var sceneHUD, cameraHUD;
+var sceneHUD, cameraHUD,loader;
 var button,target,hW,hH;
 var arToolKitSource, arToolKitContext, markerHiro;
 
-var isBoom = false; 
-var sprite,size = 2,loader;
+var sprite,size = 2;
 var baseS = 0,baseT = 0;
 var uvOffsetArray = [];
 
@@ -77,28 +75,28 @@ function init() {
 	
 	clock = new THREE.Clock();
 	loader = new THREE.TextureLoader();
-
+	loader.setCrossOrigin(''); //
 	// HUD介面
 	sceneHUD = new THREE.Scene();
-	hW = window.innerWidth / 2;
-	hH = window.innerHeight / 2;
-	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,100);
-	//target
-	loader.load(
-		'https://i.imgur.com/mESs5e2.png',
-		function(texture ){
-		  target = new THREE.Mesh(new THREE.CircleGeometry(0.5, 36), new THREE.MeshBasicMaterial({ map: texture }));
-		  target.rotateX(-Math.PI / 2);
-		  markerHiro.add(target);
-		}
-	);
+	hW = hH * (window.innerWidth / window.innerHeight);
+	hH = 10;
+	cameraHUD = new THREE.OrthographicCamera(-hW,hW,hH,-hH,-10,10);
 	//button
 	loader.load(
-		'https://i.imgur.com/r2bHPXw.png',
-		function(texture ){
-		  button = new THREE.Mesh(new THREE.CircleGeometry(1, 36), new THREE.MeshBasicMaterial({ map: texture }));
-		  button.position.set(0, -5, 0);
-		  sceneHUD.add(button);
+		'button.png',
+		 function ( texture ){
+			  button = new THREE.Mesh(new THREE.CircleGeometry(1, 36), new THREE.MeshBasicMaterial({ map: texture }));
+			  button.position.set(0, -5, 0);
+			  sceneHUD.add(button);
+		}
+	);
+	//target
+	loader.load(
+		'target.png',
+		function ( texture ){
+			  target = new THREE.Mesh(new THREE.CircleGeometry(0.5, 36), new THREE.MeshBasicMaterial({ map: texture }));
+			  target.rotateX(-Math.PI / 2);
+			  markerHiro.add(target);
 		}
 	);
 	
@@ -106,7 +104,7 @@ function init() {
 	scene.add (markerHiro); 
 	
 	//boom
-	 initSprite(markerHiro);
+	initSprite(markerHiro);
 	
 	//touch & mouse
 	var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
@@ -132,80 +130,16 @@ function addMarkerHiro(){
 		type : 'pattern',
 		patternUrl : THREEx.ArToolkitContext.baseURL + '../data/data/patt.hiro'
 	})
-	
 
 	return markerRoot;
-}	
-function onTouchStart(event){
-	if (event.touches.length == 1) {
-		event.preventDefault();
-		let ndcX = (event.clientX / window.innerWidth) * 2 - 1;
-		let ndcY = -(event.clientY / window.innerHeight) * 2 + 1;
-		pickCompute(ndcX, ndcY);
-	}
 }
-function onTouchEnd (event) {
-	event.preventDefault();
-}
-
-function onMouseDown(event){
-	event.preventDefault();
-	let ndcX = (event.clientX / window.innerWidth) * 2 - 1;
-	let ndcY = -(event.clientY / window.innerHeight) * 2 + 1;
-	pickCompute(ndcX, ndcY);
-}
-function onMouseUp(event){
-	event.preventDefault();
-}
-function pickCompute(ndcX, ndcY){
-	// use 2D algorithm
-	const d2To = (v1, v2) => Math.sqrt(v1 ** 2 + (v2 - (-5)) ** 2);
-	const dist = d2To(halfW * ndcX, halfH * ndcY);
-	if (dist < 1)
-		setTimeout(spriteAnimate, 0);
-	
-}
-function setUpOffsetArray() {
-  uvOffsetArray = [];
-  var rowCount = 4; // 4x8 sprites
-  var colCount = 8;
-  for (var i = 0; i < rowCount; i++) {
-    var row = [];
-    for (var j = 0; j < colCount; j++)
-      row.push(new THREE.Vector2(j * 0.125, - 0.25 * i));
-    uvOffsetArray.push(row);
-  }
-}
-
-function buildSprite(texMat, markerRoot) {
-
-	let vertices = [-size/2, -size/2, 0, size/2, -size/2, 0,
-                    size/2, size/2, 0, -size/2, size/2, 0];
-	let geometry = new THREE.BufferGeometry();
-	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-		
-	let indices = [0,1,2, 0,2,3];
-	geometry.setIndex(indices);
-
-	let uvs = [];
-	uvs.push (0,0.75, 0.125,0.75, 0.125,1, 0,1);  // LL of first frame: [0, 0.75]
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-
-	geometry.computeBoundingSphere();
-    geometry.computeFaceNormals();
-    geometry.computeVertexNormals();
-
-    sprite = new THREE.Mesh(geometry, texMat);
-    markerRoot.add(sprite);
-}
-
 function initSprite(markerGroup) {
   setUpOffsetArray();
 
   // load a resource
   loader.load(
     // resource URL
-    '6ePTx6p.png',
+    'boom.png',
 
     // Function when resource is loaded
     function(texture) {
@@ -229,6 +163,79 @@ function initSprite(markerGroup) {
     }
   );
 }
+
+function buildSprite() {
+
+	let vertices = [-size/2, -size/2, 0, size/2, -size/2, 0, size/2, size/2, 0, -size/2, size/2, 0];
+	var geometry = new THREE.BufferGeometry();
+	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute(vertices, 3) );
+
+	let indices = [0, 1, 2, 0, 2, 3];
+	geometry.setIndex(indices);
+
+	let uvs = [];
+	uvs.push(0, 0.75, 0.125, 0.75, 0.125, 1, 0, 1);
+	geometry.setAttribute( 'uv', new  THREE.Float32BufferAttribute(uvs, 2) );
+
+	geometry.computeBoundingSphere();
+    geometry.computeFaceNormals();
+    geometry.computeVertexNormals();
+
+    sprite = new THREE.Mesh(geometry, texMat);
+    markerGroup.add(sprite);
+}
+
+function pickCompute(ndcX, ndcY){
+	// use 2D algorithm
+	let d2To = (v1, v2) => Math.sqrt(v1 ** 2 + (v2 - (-5)) ** 2);
+	let dist = d2To(hW * ndcX, hH * ndcY);
+	if (dist < 1) {
+		setTimeout(spriteAnimate, 0);
+	}
+}
+
+function onTouchStart(event){
+	if (event.touches.length == 1) {
+		event.preventDefault();
+		let ndcX = (event.clientX / window.innerWidth) * 2 - 1;
+		let ndcY = -(event.clientY / window.innerHeight) * 2 + 1;
+		pickCompute(ndcX, ndcY);
+	}
+}
+function onTouchEnd (event) {
+	event.preventDefault();
+}
+
+function onMouseDown(event){
+	event.preventDefault();
+	let ndcX = (event.clientX / window.innerWidth) * 2 - 1;
+	let ndcY = -(event.clientY / window.innerHeight) * 2 + 1;
+		pickCompute(ndcX, ndcY);
+}
+function onMouseUp(event){
+	event.preventDefault();
+}
+function setUpOffsetArray() {
+  uvOffsetArray = [];
+  var rowCount = 4; // 4x8 sprites
+  var colCount = 8;
+  for (var i = 0; i < rowCount; i++) {
+    var row = [];
+    for (var j = 0; j < colCount; j++)
+      row.push(new THREE.Vector2(j * 0.125, - 0.25 * i));
+    uvOffsetArray.push(row);
+  }
+}
+
+function onWindowResize(){
+
+	arToolkitSource.onResizeElement();
+	arToolkitSource.copyElementSizeTo(renderer.domElement);
+	if(arToolkitContext.arController !== null)
+		arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+}
+
+
 function spriteAnimate(sprite) {
 
 	if (sprite===undefined)
@@ -250,34 +257,27 @@ function _spriteAnimate() {
 	else 
 		sprite.material.map.offset.copy(uvOffsetArray[0][0]);
 	
-
-}
-function onWindowResize() {
-	arToolkitSource.onResizeElement();
-	arToolkitSource.copyElementSizeTo(renderer.domElement);
-	if(arToolkitContext.arController !== null) 
-		arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
-	
 }
 	
 function animate() {
-	requestAnimationFrame (animate);
-	stats.update();
-	
-	if( arToolkitSource.ready === false )	return
-	arToolkitContext.update( arToolkitSource.domElement );
-	
-		
-	let localCamera = markerHiro.worldToLocal(new THREE.Vector3());
-	let point = new THREE.Vector3(0, 0, 1);
-	let angle = point.angleTo(localCamera);
-	let axis  = new THREE.Vector3();
-	axis.crossVectors(point, localCamera).normalize();
-	target.quaternion.setFromAxisAngle(axis, angle);
+	requestAnimationFrame(animate);
 
+	if(arToolkitSource.ready === false)	return
+		arToolkitContext.update(arToolkitSource.domElement);
+
+	button.material.visible = markerHiro.visible;
 	renderer.clear();
-	renderer.render (scene, camera);	
-	renderer.render (sceneHUD, cameraHUD);
+	renderer.render(scene, camera);
+	renderer.render(sceneHUD, cameraHUD);
+
+	let localCamera = markerHiro.worldToLocal (new THREE.Vector3(0,0,0))
+
+	// to rotate (0,0,1) to localCamera [markerCoord]
+	let point = new THREE.Vector3(0,0,1);
+	let angle = point.angleTo (localCamera);
+	let axis = new THREE.Vector3();
+	axis.crossVectors(point, localCamera).normalize(); // normalization is IMPORTANT!
+	sprite.quaternion.setFromAxisAngle(axis, angle);
 }
 
 
