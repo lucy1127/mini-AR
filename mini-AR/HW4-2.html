@@ -26,6 +26,7 @@ var sceneHUD, cameraHUD,loader;
 var button,target,hW,hH;
 var arToolKitSource, arToolKitContext, markerHiro,markerRoot;
 
+var isBoom = false;
 var sprite,size = 2;
 var baseS = 0,baseT = 0;
 var uvOffsetArray = [];
@@ -219,12 +220,16 @@ function buildSprite(texMat, markerGroup) {
 }
 
 function pickCompute(ndcX, ndcY){
+	let HUD_coord = [hW * ndcX, hH * ndcY];
+	let dist = button.d2To(HUD_coord);
+	let printStr = [dist.toFixed(2), HUD_coord[0].toFixed(2), HUD_coord[1].toFixed(2)];
 
-	// use 2D algorithm
-	let d2To = (v1, v2) => Math.sqrt(v1 ** 2 + (v2 - (-5)) ** 2);
-	let dist = d2To(hW * ndcX, hH * ndcY);
-	if (dist < 1) {
+	if(dist < button.size){
+		isBoom = true;
 		setTimeout(spriteAnimate, 0);
+	}
+	else {
+		console.log('not hit');
 	}
 }
 
@@ -247,7 +252,11 @@ function onMouseDown(event){
 		pickCompute(ndcX, ndcY);
 }
 function onMouseUp(event){
-	event.preventDefault();
+	console.log("mouseUp");
+	if (!isBoom) {
+		isBoom = true;
+		setTimeout(spriteAnimate, 0);
+  }
 }
 function setUpOffsetArray() {
   uvOffsetArray = [];
@@ -270,7 +279,7 @@ function onWindowResize(){
 }
 
 
-function spriteAnimate(sprite) {
+function spriteAnimate() {
 
 	if (sprite===undefined)
 		return;
@@ -288,11 +297,24 @@ function _spriteAnimate() {
 	
 	if (baseS!= 3 || baseT != 7)
 		setTimeout(_spriteAnimate, 100);
-	else 
+	else {
 		sprite.material.map.offset.copy(uvOffsetArray[0][0]);
-	
+		isBoom = false;
+	}
 }
+
+function updateBillboard(target) {
 	
+  let localCamera = markerHiro.worldToLocal(new THREE.Vector3());
+  
+  let point = new THREE.Vector3(0, 0, 1);
+  let angle = point.angleTo(localCamera);
+  let axis  = new THREE.Vector3();
+  axis.crossVectors(point, localCamera).normalize();
+  target.quaternion.setFromAxisAngle(axis, angle);
+  
+}
+
 function animate() {
 	requestAnimationFrame(animate);
 
@@ -301,19 +323,11 @@ function animate() {
 
 	button.mesh.material.visible = markerRoot.visible;
 	
+	updateBillboard(sprite);
+	
 	renderer.clear();
 	renderer.render(scene, camera);
 	renderer.render(sceneHUD, cameraHUD);
-
-	let localCamera = markerRoot.worldToLocal (new THREE.Vector3(0,0,0))
-
-	// to rotate (0,0,1) to localCamera [markerCoord]
-	let point = new THREE.Vector3(0,0,1);
-	let angle = point.angleTo (localCamera);
-	let axis = new THREE.Vector3();
-	axis.crossVectors(point, localCamera).normalize();	// normalization is IMPORTANT!
-	target = markerRoot.children[0];
-	target.quaternion.setFromAxisAngle(axis, angle);
 }
 
 
