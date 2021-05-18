@@ -32,7 +32,7 @@ var q1, q2;
 class Bullet{
 
 	constructor(barrel, direct, power, force) {
-        this.main = new THREE.Mesh(new THREE.CylinderGeometry(0.1,5,12,32), new THREE.MeshPhongMaterial());
+        this.main = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.1,0.25,32), new THREE.MeshPhongMaterial());
         this.main.rotation.y = direct;
         markerHiro.add(this.main);
   
