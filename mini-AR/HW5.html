@@ -358,7 +358,6 @@ function addMarkerKanji() {
     let geometry = new THREE.CylinderGeometry( 0.1, 0.1, 0.4, 32 );
 	let material = new THREE.MeshPhongMaterial();
 	let cylinder = new THREE.Mesh( geometry, material );
-	cylinder.position.y = 2.25;
 	markerRoot.add( cylinder );
     
     return markerRoot;
