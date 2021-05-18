@@ -9,42 +9,222 @@
 <script src="../build/ar.js"></script>
 <script>THREEx.ArToolkitContext.baseURL = '../'</script>
 
-<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
-<div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
-<a href="https://github.com/jeromeetienne/AR.js/" target="_blank">AR.js</a>
-	 - three.js<br>
-Minimal Version<br>
-<p id="text" style ="color:red">
-</p>
-</div>
 
 <script>
-var renderer, scene, camera,stats;
-var target,ball;
-var arToolKitSource, arToolKitContext;
-var markerHiro,markerKanji;
-var clock;
-
-//砲台
-var cannon,barrelPart;
-var pos, vel, force;
-var parabola;
-//boom
-var isBoom = false;
-var sprite,size = 2;
-var baseS = 0,baseT = 0;
-var uvOffsetArray = [];
-//findtarget
-var counter, N,raycaster;
-var kanjiPos;
+// global variables
+var renderer, scene, camera, clock, stats;
+var loader, raycaster;
+var arToolKitSource, arToolKitContext, markerHiro, markerKanji;
+var spriteSize = 2;
+var cannon, sprite;
+var kanjiPrePos;
+var N, counter;
 var q1, q2;
+var run = true;
+var arMode = true;
 
+class Bullet{
+
+	constructor(barrel, direct, power, force) {
+        this.main = new THREE.Mesh(new THREE.CylinderGeometry(0.1,5,12,32), new THREE.MeshPhongMaterial());
+        this.main.rotation.y = direct;
+        markerHiro.add(this.main);
+  
+        this.vel = barrel.localToWorld( new THREE.Vector3(0,1,0) );
+        this.vel = markerHiro.worldToLocal(this.vel);
+        this.vel.setLength(power);
+        this.pos = barrel.localToWorld( new THREE.Vector3(0,1.1,0) );
+        this.pos = markerHiro.worldToLocal(this.pos);
+        this.force = force;
+    }
+    update(dt) {
+        // Euler's method
+        this.vel.add( this.force.clone().multiplyScalar(dt) );
+        let prePos = this.pos.clone();
+        this.pos.add( this.vel.clone().multiplyScalar(dt) );
+        this.main.position.copy(this.pos);
+        this.main.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), this.pos.clone().sub(prePos).normalize());
+    
+    }
+}
+
+class Cannon {
+
+	constructor() {
+  
+        this.main = new THREE.Group();
+        this.barrelPart = new THREE.Group();
+        
+        this.power = 1.25;
+        this.force = new THREE.Vector3(0, -0.5, 0);
+        this.isShooting = false;
+        this.aimPos = new THREE.Vector3(0, 0, 0);
+        
+        let body = new THREE.Mesh( new THREE.SphereGeometry(0.5, 10, 10, Math.PI+Math.PI*0.1, Math.PI*1.8,0, Math.PI/2), new THREE.MeshNormalMaterial());
+        this.main.add(body);
+        // cannon barrel
+        let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1, 18),new THREE.MeshNormalMaterial());
+        barrel.position.y =0.5;
+        this.barrelPart.add(barrel);
+        this.barrelPart.rotation.z = -Math.PI/3;
+        this.main.add(this.barrelPart);
+        
+    }
+  
+    update(dt) {
+        
+        // shooting control
+        if (keyboard.down('space')) {
+            this.shoot();
+        }
+        
+        if (this.isShooting) {
+        
+            this.bullet.update(dt);
+            if (this.bullet.pos.y < 0) {
+            
+                var vec = this.bullet.main.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
+                var distance = vec.length();
+                if (distance <= 1.1) {
+                    markerKanji.children[2].visible = false;
+                    sprite.play();
+                }
+            
+                markerHiro.remove(this.bullet.main);
+                this.isShooting = false;
+                
+            }
+        
+        }
+
+        this.drawLine();
+        
+    }
+  
+    drawLine() {
+        
+        let points = [];
+        let vel;
+        vel = this.barrelPart.localToWorld( new THREE.Vector3(0, 2*scale, 0) );
+        vel = markerHiro.worldToLocal(vel);
+        vel.setLength(this.power);
+        this.aimPos = this.barrelPart.localToWorld( new THREE.Vector3(0, 2.2*scale, 0) );
+        this.aimPos = markerHiro.worldToLocal(this.aimPos);
+        for (let i = 0; this.aimPos.y > 0; i++) {
+    
+            points.push(this.aimPos.clone());
+            vel.add(this.force.clone().multiplyScalar(0.1));
+            this.aimPos.add(vel.clone().multiplyScalar(0.1));
+
+        }
+
+        let geometry = new THREE.BufferGeometry().setFromPoints(points);
+        let parabola = new THREE.Line(geometry, new THREE.LineDashedMaterial({color:'cyan'}));
+        parabola.computeLineDistances();
+        markerHiro.remove(this.parabola);
+        markerHiro.add(parabola);
+        this.parabola = parabola;
+        
+    }
+  
+    shoot() {
+        if (!this.isShooting) {
+            this.isShooting = true;
+            this.bullet = new Bullet(this.barrelPart, this.main.rotation.y, this.power, this.force);
+
+        }
+        
+    }
+  
+}
+
+class Sprite {
+
+	constructor() {
+  
+        this.animationStatus = "pause";
+        this.duration = 3200;
+        this.currentFrame = 0;
+        this.timer = 0;
+        
+        this.uvOffsets = [];
+        for (let i=0; i<4; i++) {
+            for (let j=0; j<8; j++) {
+                this.uvOffsets.push( new THREE.Vector2(j*0.125, -0.25*i) );
+            }
+        }
+        
+        this.size = 5;
+        let vertices = [-this.size/2, -this.size/2, 0, this.size/2,
+                                        -this.size/2, 0, this.size/2, this.size/2,
+                                        0, -this.size/2, this.size/2, 0];
+        var geo = new THREE.BufferGeometry();
+        geo.setAttribute( 'position', new THREE.Float32BufferAttribute(vertices, 3) );
+
+        let indices = [0, 1, 2, 0, 2, 3];
+        geo.setIndex(indices);
+
+        let uvs = [];
+        uvs.push(0, 0.75, 0.125, 0.75, 0.125, 1, 0, 1);
+        geo.setAttribute( 'uv', new  THREE.Float32BufferAttribute(uvs, 2) );
+
+        var texture = new THREE.TextureLoader().load('https://i.imgur.com/j5NYK55.png');
+        var mat = new THREE.MeshBasicMaterial( { map: texture } );
+        mat.transparent = true;
+        this.main = new THREE.Mesh( geo, mat );
+        this.main.position.y = 0.1;
+    
+    }
+  
+    update(dt) {
+
+        let localCamera = markerKanji.worldToLocal(new THREE.Vector3());
+        let point = new THREE.Vector3(0, 0, 1);
+        let angle = point.angleTo(localCamera);
+        let axis  = new THREE.Vector3();
+        axis.crossVectors(point, localCamera).normalize();
+        this.main.quaternion.setFromAxisAngle(axis, angle);
+        
+        if (this.animationStatus == "play") {
+            this.main.material.map.offset.copy(this.uvOffsets[this.currentFrame]);
+            this.timer += dt*1000;
+            this.currentFrame = this.timer / (this.duration/this.uvOffsets.length);
+            this.currentFrame = parseInt(this.currentFrame);
+        
+            if (this.currentFrame >= this.uvOffsets.length) {
+                this.main.material.map.offset.copy(this.uvOffsets[0]);
+                this.animationStatus = "stop";
+            }
+        }
+        else if (this.animationStatus == "stop") {
+            this.timer = 0;
+            this.currentFrame = 0;
+            this.animationStatus = "pause";
+        
+        }
+
+    }
+  
+    play() {
+        this.animationStatus = "play";
+    }
+    
+    pause() {
+        this.animationStatus = "pause";
+    }
+    
+    stop() {
+        this.animationStatus = "stop";
+    }
+	
+}
 
 init();
 animate();
 
 function init() {
 
+	// init renderer
 	renderer = new THREE.WebGLRenderer({alpha: true});
 	renderer.autoClear = false;
 	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
@@ -52,112 +232,105 @@ function init() {
 	renderer.domElement.style.position = 'absolute'
 	renderer.domElement.style.top = '0px'
 	renderer.domElement.style.left = '0px'
-	document.body.appendChild( renderer.domElement );
-
+	//document.body.appendChild( renderer.domElement );
+  
+    loader =  new THREE.TextureLoader();
+    raycaster = new THREE.Raycaster();
+	clock = new THREE.Clock();
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
+
+	// init scene
 	scene = new THREE.Scene();
-	camera = new THREE.Camera();
-	scene.add(camera);
-	clock = new THREE.Clock();
-	
-	var light = new THREE.PointLight( 0xFFFFFF, 1, 100 );
+    var light = new THREE.PointLight( 0xFFFFFF, 1, 100 );
     light.position.y = 10;
     light.position.z = 15;
     scene.add(light);
-
-	arToolkitSource = new THREEx.ArToolkitSource({sourceType : 'webcam',})
-	arToolkitSource.init(function onReady(){onResize()})
 	
-	window.addEventListener('resize', function(){onResize()})
-	function onResize(){
-		arToolkitSource.onResize()	
-		arToolkitSource.copySizeTo(renderer.domElement)	
-		if( arToolkitContext.arController !== null ){
-			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
-		}	
-	}
-	console.log(THREEx.ArToolkitContext.baseURL);
-	arToolkitContext = new THREEx.ArToolkitContext({
-		cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '/data/data/camera_para.dat',
-		detectionMode: 'mono',
-		maxDetectionRate: 30,
-		canvasWidth: 80*3,
-		canvasHeight: 60*3,
-	})
-	arToolkitContext.init(function onCompleted(){
+	camera = new THREE.Camera();
+	scene.add(camera);
+	arToolkitSource = new THREEx.ArToolkitSource( {sourceType : 'webcam'} );
+	arToolkitSource.init(function onReady() {onWindowResize();});
+	window.addEventListener('resize', function() {onWindowResize();});
+	arToolkitContext = new THREEx.ArToolkitContext( {
+	cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '/data/data/camera_para.dat',
+	detectionMode: 'mono',
+	maxDetectionRate: 30,
+	canvasWidth: 80*3,
+	canvasHeight: 60*3,
+	});
+	arToolkitContext.init( function onCompleted() {
 		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
-	})
-	
-	markerHiro = addMarkerHiro();
-	scene.add (markerHiro);
+	});
 
-	markerKanji = addMarkerKanji();
+    
+    // create marker hiro 
+    markerHiro = addMarkerHiro();
+    scene.add(markerHiro);
+    
+    // create marker kanji 
+    markerKanji = addMarkerKanji();
     scene.add(markerKanji);
+    
+    // init cannon auto-aim
+    q1 = new THREE.Quaternion();
+    q2 = new THREE.Quaternion();
 	
-	//line
-	drawLineFirst();
-	//initboom
-	initSprite(markerKanji);
-	
-	let barrel = cannon.children[1]
-	barrel.rotation.z = -Math.PI/6; // barrel angle
-	cannon.rotation.y = -Math.PI/6;
-	
-	//////////////////////////
-	q1 = new THREE.Quaternion(); // null rotation
-	q2 = new THREE.Quaternion();
-	
-	kanjiPos = markerKanji.position.clone();
+    kanjiPrePos = markerKanji.position.clone();
+ 
 }
-function addMarkerHiro(){
-	
-	let markerRoot = new THREE.Group()
-	
+
+function animate() {
+
+	requestAnimationFrame(animate);
+	stats.update();
+    keyboard.update();
+
+  
+	if ( arToolkitSource.ready === false )	return
+	arToolkitContext.update( arToolkitSource.domElement );
+    
+
+    var dt = clock.getDelta();
+    cannon.update(dt);
+    sprite.update(dt);
+	findTarget();
+    
+	renderer.render(scene, camera);
+  
+}
+
+function onWindowResize() {
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function addMarkerHiro() {  
+
+	let markerRoot = new THREE.Group();
 	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
 		type : 'pattern',
 		patternUrl : THREEx.ArToolkitContext.baseURL + '/data/data/patt.hiro'
-	})
-	
-	cannon = makeCannon();
-	markerRoot.add (cannon);
-	
-	ball = new THREE.Mesh (new THREE.CylinderGeometry(0.1, 5, 12, 32 ), new THREE.MeshPhongMaterial());
-	markerRoot.add (ball);
+	});
 
+    // Create cannon
+    cannon = new Cannon();
+    markerRoot.add(cannon.main);
+    
 	return markerRoot;
-}
-function makeCannon() {
-	let cannon = new THREE.Group();
-	let body = new THREE.Mesh (new THREE.SphereGeometry(
-	10,20,20, Math.PI+Math.PI*0.1,Math.PI*1.8,0,Math.PI/2), new THREE.MeshPhongMaterial());
-	
-	barrelPart = new THREE.Group();
-	let barrel = new THREE.Mesh (new THREE.CylinderGeometry(2,2,20,18), new THREE.MeshPhongMaterial());
-	barrelPart.add (barrel);
-	barrel.position.y = 10;
+}	
 
-	cannon.add (body, barrelPart);
-	return cannon;
-}
-function computeInitPosVel() {
-	let barrel = cannon.children[1];
-	const SPEED = 25;
-	vel = barrel.localToWorld (new THREE.Vector3(0,20,0)).sub (
-	barrel.localToWorld (new THREE.Vector3(0,0,0))).setLength (SPEED);
-	pos = barrel.localToWorld (new THREE.Vector3(0,22,0));
-	force = new THREE.Vector3(0,-10,0);
-}
 function addMarkerKanji() {
 
 	let markerRoot = new THREE.Group();
-    
-	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
-		type : 'pattern',
-		patternUrl : THREEx.ArToolkitContext.baseURL + '/data/data/patt.kanji'
-	});
- 
-	
+
+    var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+            type : 'pattern',
+            patternUrl : THREEx.ArToolkitContext.baseURL + '/data/data/patt.kanji'
+        });
+        
 	//target
 	var loader = new THREE.TextureLoader();
 	loader.setCrossOrigin(''); //
@@ -169,188 +342,32 @@ function addMarkerKanji() {
 			  markerRoot.add(target);
 		}
 	);
-	
-	let geometry = new THREE.CylinderGeometry( 5, 5, 20, 32 );
+    
+    sprite = new Sprite();
+    sprite.main.position.y = 1.2;
+    markerRoot.add(sprite.main);
+
+    let geometry = new THREE.CylinderGeometry( 5, 5, 20, 32 );
 	let material = new THREE.MeshPhongMaterial();
 	let cylinder = new THREE.Mesh( geometry, material );
+	cylinder.position.y = 2.25;
 	markerRoot.add( cylinder );
-	
+    
     return markerRoot;
 }	
-function initSprite(markerGroup) {
-	setUpOffsetArray();
 
-	// load a resource
-	var loader = new THREE.TextureLoader();
-	loader.setCrossOrigin(''); //
-	loader.load(
-    // resource URL
-    'boom.png',
+function findTarget() {
 
-    // Function when resource is loaded
-    function(texture) {
-      // Plane with default texture coordinates [0,1]x[0,1]
-      let texMat = new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true, // cutout texture: set transparent: true
-        side: THREE.DoubleSide
-      });
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-      buildSprite(texMat, markerGroup);
-    },
-    // Function called when download progresses
-    function(xhr) {
-      console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-    },
-    // Function called when download errors
-    function(xhr) {
-      console.log('An error happened');
-    }
-  );
-}
-function buildSprite(texMat, markerGroup) {
-
-	let vertices = [-size/2, -size/2, 0, size/2, -size/2, 0, size/2, size/2, 0, -size/2, size/2, 0];
-	const geometry = new THREE.BufferGeometry();
-	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute(vertices, 3) );
-
-	let indices = [0, 1, 2, 0, 2, 3];
-	geometry.setIndex(indices);
-
-	let uvs = [];
-	uvs.push(0, 0.75, 0.125, 0.75, 0.125, 1, 0, 1);
-	geometry.setAttribute( 'uv', new  THREE.Float32BufferAttribute(uvs, 2) );
-
-	geometry.computeBoundingSphere();
-    geometry.computeFaceNormals();
-    geometry.computeVertexNormals();
-
-    sprite = new THREE.Mesh(geometry, texMat);
-    markerGroup.add(sprite);
-}
-function setUpOffsetArray() {
-  uvOffsetArray = [];
-  var rowCount = 4; // 4x8 sprites
-  var colCount = 8;
-  for (var i = 0; i < rowCount; i++) {
-    var row = [];
-    for (var j = 0; j < colCount; j++)
-      row.push(new THREE.Vector2(j * 0.125, - 0.25 * i));
-    uvOffsetArray.push(row);
-  }
-}
-function spriteAnimate() {
-
-	if (sprite===undefined)
-		return;
-		
-	baseS = baseT = 0;
-	setTimeout(_spriteAnimate, 100);
-}
-function _spriteAnimate() {
-
-	sprite.material.map.offset.copy(uvOffsetArray[baseS][baseT]);
-	baseT = (baseT + 1) % 8;
-	
-	if (baseT==0) 
-		baseS = (baseS + 1) % 4;
-	
-	if (baseS!= 3 || baseT != 7)
-		setTimeout(_spriteAnimate, 100);
-	else {
-		sprite.material.map.offset.copy(uvOffsetArray[0][0]);
-		isBoom = false;
-	}
-}
-function updateBillboard(target) {
-	
-  let localCamera = markerHiro.worldToLocal(new THREE.Vector3());
-  
-  let point = new THREE.Vector3(0, 0, 1);
-  let angle = point.angleTo(localCamera);
-  let axis  = new THREE.Vector3();
-  axis.crossVectors(point, localCamera).normalize();
-  target.quaternion.setFromAxisAngle(axis, angle);
-  
-}
-function drawLineFirst(){
-	let points = [];
-    const SPEED = 25;
-    let vel = barrelPart.localToWorld(new THREE.Vector3(0,20,0)).sub(
-    barrelPart.localToWorld(new THREE.Vector3(0,0,0))).setLength(SPEED);
-    let pos = barrelPart.localToWorld(new THREE.Vector3(0,22,0));
-	let force = new THREE.Vector3(0,-10,0);
-	
-  	for (let i = 0; pos.y > 0; i++) {
-		points.push(pos.clone());
-		vel.add(force.clone().multiplyScalar(0.05));
-		pos.add(vel.clone().multiplyScalar(0.05));
-    }
-	
-	let geometry = new THREE.BufferGeometry().setFromPoints(points);
-	parabola = new THREE.Line (geometry, new THREE.LineDashedMaterial({color:'white'}));
-	parabola.computeLineDistances(); // required for LineDashedMaterial
-	//return parabola;
-	scene.add(parabola);
-	
-}
-function drawLine(){
-	let points = [];
-    const SPEED = 25;
-    let vel = barrelPart.localToWorld(new THREE.Vector3(0,20,0)).sub(
-    barrelPart.localToWorld(new THREE.Vector3(0,0,0))).setLength(SPEED);
-    let pos = barrelPart.localToWorld(new THREE.Vector3(0,22,0));
-	let force = new THREE.Vector3(0,-10,0);
-	
-  	for (let i = 0; pos.y > 0; i++) {
-		points.push(pos.clone());
-		vel.add(force.clone().multiplyScalar(0.05));
-		pos.add(vel.clone().multiplyScalar(0.05));
-    }
-	
-	let geometry = new THREE.BufferGeometry().setFromPoints(points);
-	parabola.geometry = geometry;
-	parabola.computeLineDistances(); // required for LineDashedMaterial
-	
-}
-function computeInitPosVel() {
-	let barrel = cannon.children[1];
-	const SPEED = 25;
-	vel = barrel.localToWorld (new THREE.Vector3(0,20,0)).sub (
-	barrel.localToWorld (new THREE.Vector3(0,0,0))).setLength (SPEED);
-	pos = barrel.localToWorld (new THREE.Vector3(0,22,0));
-	force = new THREE.Vector3(0,-10,0);
-}
-function shooting(){
-
-	if (pos === undefined) {
-		computeInitPosVel();
-		return;
-	}
-
-	if (pos.y < 0){	
-		scene.remove(ball);
-		shooting = false;
-		return;
-	}
-	// Euler's method
-	vel.add (force.clone().multiplyScalar(dt));
-	pos.add (vel.clone().multiplyScalar(dt));
-	ball.position.copy (pos);
-	
-}
-function findTarget(){
-	
     var relativePos = markerHiro.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
-    if ( relativePos.distanceTo(kanjiPos) > 0.05 ) {
+    if ( relativePos.distanceTo(kanjiPrePos) > 0.05 ) {
     
         q1.copy(q2);  // save current (old) orientation
         q2.setFromUnitVectors(new THREE.Vector3(1, 0, 0), relativePos.clone().normalize());  // compute new oriention
 
         N = 100;
         counter = 0;
-        kanjiPos.copy(relativePos);
+        kanjiPrePos.copy(relativePos);
+            
     }
     
     var deviation = markerHiro.localToWorld( cannon.aimPos ).sub( markerKanji.localToWorld( new THREE.Vector3() ) );
@@ -367,67 +384,51 @@ function findTarget(){
 
         if (relativePos.x < 0 && relativePos.z < 0) {
 
-            if ( (deviation.x > 0 || deviation.z > 0) && barrelPart.rotation.z > -Math.PI/4){
-                barrelPart.rotation.z -= 0.01;
+            if ( (deviation.x > 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
             }
-            else if (barrelPart.rotation.z < -Math.PI/15 ) {
-                barrelPart.rotation.z += 0.01;
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
             }
         
         }
         else if (relativePos.x > 0 && relativePos.z < 0) {
 
-            if ( (deviation.x < 0 || deviation.z > 0) && barrelPart.rotation.z > -Math.PI/4){
-                barrelPart.rotation.z -= 0.01;
+            if ( (deviation.x < 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
             }
-            else if (barrelPart.rotation.z < -Math.PI/15 ) {
-                barrelPart.rotation.z += 0.01;
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
             }
         
         }
         else if (relativePos.x > 0 && relativePos.z > 0) {
         
-            if ( (deviation.x < 0 || deviation.z < 0) && barrelPart.rotation.z > -Math.PI/4){
-                barrelPart.rotation.z -= 0.01;
+            if ( (deviation.x < 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
             }
-            else if (barrelPart.rotation.z < -Math.PI/15 ) {
-                barrelPart.rotation.z += 0.01;
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
             }
         
         }
         else if (relativePos.x < 0 && relativePos.z > 0) {
         
-            if ( (deviation.x > 0 || deviation.z < 0) && barrelPart.rotation.z > -Math.PI/4){
-                barrelPart.rotation.z -= 0.025;
+            if ( (deviation.x > 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.025;
             }
-            else if (barrelPart.rotation.z < -Math.PI/15 ) {
-                barrelPart.rotation.z += 0.025;
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.025;
             }
 
         }
 
     }
-    else if (markerKanji.children[1].visible){
-        shooting();
+    else if (markerKanji.children[2].visible){
+        cannon.shoot();
     }
-}
-function animate() {
-	requestAnimationFrame(animate);
-	stats.update();
-	
-	if(arToolkitSource.ready === false)	return
-		arToolkitContext.update(arToolkitSource.domElement);
-		
-	let dt = clock.getDelta();
-	
-	drawLine();
-	updateBillboard(sprite);
-	findTarget();
-	
-	renderer.clear();
-	renderer.render(scene, camera);
-	renderer.render(sceneHUD, cameraHUD);
+  
 }
 
-
-</script></body>
+</script>
+</body>
