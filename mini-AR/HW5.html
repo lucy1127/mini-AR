@@ -9,19 +9,25 @@
 <script src="../build/ar.js"></script>
 <script>THREEx.ArToolkitContext.baseURL = '../'</script>
 
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+<div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
+<a href="https://github.com/jeromeetienne/AR.js/" target="_blank">AR.js</a>
+	 - three.js<br>
+Minimal Version<br>
+<p id="text" style ="color:red">
+</p>
+</div>
+
 
 <script>
 // global variables
 var renderer, scene, camera, clock, stats;
-var loader, raycaster;
 var arToolKitSource, arToolKitContext, markerHiro, markerKanji;
 var spriteSize = 2;
-var cannon, sprite;
+var cannon, sprite,loader;
 var kanjiPrePos;
 var N, counter;
 var q1, q2;
-var run = true;
-var arMode = true;
 
 class Bullet{
 
@@ -73,10 +79,7 @@ class Cannon {
   
     update(dt) {
         
-        // shooting control
-        if (keyboard.down('space')) {
-            this.shoot();
-        }
+
         
         if (this.isShooting) {
         
@@ -105,10 +108,10 @@ class Cannon {
         
         let points = [];
         let vel;
-        vel = this.barrelPart.localToWorld( new THREE.Vector3(0, 2*scale, 0) );
+        vel = this.barrelPart.localToWorld( new THREE.Vector3(0, 1, 0) );
         vel = markerHiro.worldToLocal(vel);
         vel.setLength(this.power);
-        this.aimPos = this.barrelPart.localToWorld( new THREE.Vector3(0, 2.2*scale, 0) );
+        this.aimPos = this.barrelPart.localToWorld( new THREE.Vector3(0, 1.1, 0) );
         this.aimPos = markerHiro.worldToLocal(this.aimPos);
         for (let i = 0; this.aimPos.y > 0; i++) {
     
@@ -227,15 +230,14 @@ function init() {
 	// init renderer
 	renderer = new THREE.WebGLRenderer({alpha: true});
 	renderer.autoClear = false;
-	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0);
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.domElement.style.position = 'absolute'
 	renderer.domElement.style.top = '0px'
 	renderer.domElement.style.left = '0px'
-	//document.body.appendChild( renderer.domElement );
+	document.body.appendChild( renderer.domElement );
   
     loader =  new THREE.TextureLoader();
-    raycaster = new THREE.Raycaster();
 	clock = new THREE.Clock();
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
@@ -249,19 +251,29 @@ function init() {
 	
 	camera = new THREE.Camera();
 	scene.add(camera);
-	arToolkitSource = new THREEx.ArToolkitSource( {sourceType : 'webcam'} );
-	arToolkitSource.init(function onReady() {onWindowResize();});
-	window.addEventListener('resize', function() {onWindowResize();});
-	arToolkitContext = new THREEx.ArToolkitContext( {
-	cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '/data/data/camera_para.dat',
-	detectionMode: 'mono',
-	maxDetectionRate: 30,
-	canvasWidth: 80*3,
-	canvasHeight: 60*3,
-	});
-	arToolkitContext.init( function onCompleted() {
+	
+	arToolkitSource = new THREEx.ArToolkitSource({sourceType : 'webcam',})
+	arToolkitSource.init(function onReady(){onResize()})
+	
+	window.addEventListener('resize', function(){onResize()})
+	function onResize(){
+		arToolkitSource.onResize()	
+		arToolkitSource.copySizeTo(renderer.domElement)	
+		if( arToolkitContext.arController !== null ){
+			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
+		}	
+	}
+	console.log(THREEx.ArToolkitContext.baseURL);
+	arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '/data/data/camera_para.dat',
+		detectionMode: 'mono',
+		maxDetectionRate: 30,
+		canvasWidth: 80*3,
+		canvasHeight: 60*3,
+	})
+	arToolkitContext.init(function onCompleted(){
 		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
-	});
+	})
 
     
     // create marker hiro 
@@ -284,20 +296,16 @@ function animate() {
 
 	requestAnimationFrame(animate);
 	stats.update();
-    keyboard.update();
 
-  
 	if ( arToolkitSource.ready === false )	return
 	arToolkitContext.update( arToolkitSource.domElement );
-    
-
+   
     var dt = clock.getDelta();
     cannon.update(dt);
     sprite.update(dt);
 	findTarget();
     
 	renderer.render(scene, camera);
-  
 }
 
 function onWindowResize() {
