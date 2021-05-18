@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<head>
+    <script src="https://alan8505.github.io/miniAR-HWRepository/three.js/r125/three.min.js"></script>
+    <script src="https://alan8505.github.io/miniAR-HWRepository/three.js/ar.js"></script>
+    <script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
+    <script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+</head>
+
+<body>
+<script>
+// global variables
+var renderer, scene, camera, clock, stats;
+var loader, raycaster, mouse, keyboard;
+
+var arToolKitSource, arToolKitContext, markerHiro, markerKanji;
+
+var spriteSize = 2;
+var scale = 0.5;
+
+var cannon, sprite;
+var kanjiPrePos;
+var N, counter;
+var q1, q2;
+
+var run = true;
+
+//-----------------
+var arMode = true;
+//-----------------
+
+class Cannonball {
+
+	constructor(barrel, direct, power, force) {
+
+        let geo = new THREE.CylinderGeometry(0.052*scale, 0.2*scale, 0.5*scale, 20);
+        let mat = new THREE.MeshPhongMaterial();
+        this.main = new THREE.Mesh(geo, mat);
+        this.main.rotation.y = direct;
+        markerHiro.add(this.main);
+  
+        this.vel = barrel.localToWorld( new THREE.Vector3(0, 2*scale, 0) );
+        this.vel = markerHiro.worldToLocal(this.vel);
+        this.vel.setLength(power);
+        this.pos = barrel.localToWorld( new THREE.Vector3(0, 2.2*scale, 0) );
+        this.pos = markerHiro.worldToLocal(this.pos);
+        this.force = force;
+
+    }
+  
+    update(dt) {
+    
+        // Euler's method
+        this.vel.add( this.force.clone().multiplyScalar(dt) );
+        let prePos = this.pos.clone();
+        this.pos.add( this.vel.clone().multiplyScalar(dt) );
+        this.main.position.copy(this.pos);
+        this.main.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), this.pos.clone().sub(prePos).normalize());
+    
+    }
+
+}
+
+class Cannon {
+
+	constructor() {
+  
+        this.main = new THREE.Group();
+        this.barrelPart = new THREE.Group();
+        
+        this.power = 2.5*scale;
+        this.force = new THREE.Vector3(0, -1*scale, 0);
+        this.isShooting = false;
+        this.aimPos = new THREE.Vector3(0, 0, 0);
+        
+        // cannon main body
+        let geo, mat;
+        geo = new THREE.SphereGeometry(1*scale, 20*scale, 20*scale, Math.PI+Math.PI*0.1, Math.PI*1.8,0, Math.PI/2);
+        mat = new THREE.MeshNormalMaterial();
+        let body = new THREE.Mesh(geo, mat);
+        //body.rotation.y = -Math.PI/2;
+        this.main.add(body);
+        
+        // cannon barrel
+        geo = new THREE.CylinderGeometry(0.2*scale, 0.2*scale, 2*scale, 18);
+        mat = new THREE.MeshNormalMaterial();
+        let barrel = new THREE.Mesh(geo, mat);
+        barrel.position.y = 1*scale;
+        this.barrelPart.add(barrel);
+        this.barrelPart.rotation.z = -Math.PI/3;
+        //this.barrelPart.rotation.y = -Math.PI/2;
+        this.main.add(this.barrelPart);
+        
+    }
+  
+    update(dt) {
+        
+        // shooting control
+        if (keyboard.down('space')) {
+            this.shoot();
+        }
+        
+        if (this.isShooting) {
+        
+            this.cannonball.update(dt);
+            if (this.cannonball.pos.y < 0) {
+            
+                var vec = this.cannonball.main.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
+                var distance = vec.length();
+                console.log(distance);
+                if (distance <= 1.1) {
+                    markerKanji.children[2].visible = false;
+                    sprite.play();
+                }
+            
+                markerHiro.remove(this.cannonball.main);
+                this.isShooting = false;
+                
+            }
+        
+        }
+
+        // Turning control
+        if (keyboard.pressed('left')) {
+            this.main.rotation.y += 0.05;
+        }
+        
+        if (keyboard.pressed('right')) {
+            this.main.rotation.y -= 0.05;
+        }
+        
+        if (keyboard.pressed('up') && this.barrelPart.rotation.z < -Math.PI/15) {
+            this.barrelPart.rotation.z += 0.02;
+        }
+        
+        if (keyboard.pressed('down') && this.barrelPart.rotation.z > -Math.PI/4) {
+            this.barrelPart.rotation.z -= 0.02;
+        }
+
+        this.drawLine();
+        
+    }
+  
+    drawLine() {
+        
+        let points = [];
+        let vel;
+        vel = this.barrelPart.localToWorld( new THREE.Vector3(0, 2*scale, 0) );
+        vel = markerHiro.worldToLocal(vel);
+        vel.setLength(this.power);
+        this.aimPos = this.barrelPart.localToWorld( new THREE.Vector3(0, 2.2*scale, 0) );
+        this.aimPos = markerHiro.worldToLocal(this.aimPos);
+        for (let i = 0; this.aimPos.y > 0; i++) {
+    
+            points.push(this.aimPos.clone());
+            vel.add(this.force.clone().multiplyScalar(0.1));
+            this.aimPos.add(vel.clone().multiplyScalar(0.1));
+
+        }
+
+        let geometry = new THREE.BufferGeometry().setFromPoints(points);
+        let parabola = new THREE.Line(geometry, new THREE.LineDashedMaterial({color:'cyan'}));
+        parabola.computeLineDistances();
+        markerHiro.remove(this.parabola);
+        markerHiro.add(parabola);
+        this.parabola = parabola;
+        
+    }
+  
+    shoot() {
+        
+        if (!this.isShooting) {
+
+            this.isShooting = true;
+            this.cannonball = new Cannonball(this.barrelPart, this.main.rotation.y, this.power, this.force);
+
+        }
+        
+    }
+  
+}
+
+class Sprite {
+
+	constructor() {
+  
+        this.animationStatus = "pause";
+        this.duration = 3200;
+        this.currentFrame = 0;
+        this.timer = 0;
+        
+        this.uvOffsets = [];
+        for (let i=0; i<4; i++) {
+            for (let j=0; j<8; j++) {
+                this.uvOffsets.push( new THREE.Vector2(j*0.125, -0.25*i) );
+            }
+        }
+        
+        this.size = 5;
+        let vertices = [-this.size/2, -this.size/2, 0, this.size/2,
+                                        -this.size/2, 0, this.size/2, this.size/2,
+                                        0, -this.size/2, this.size/2, 0];
+        var geo = new THREE.BufferGeometry();
+        geo.setAttribute( 'position', new THREE.Float32BufferAttribute(vertices, 3) );
+
+        let indices = [0, 1, 2, 0, 2, 3];
+        geo.setIndex(indices);
+
+        let uvs = [];
+        uvs.push(0, 0.75, 0.125, 0.75, 0.125, 1, 0, 1);
+        geo.setAttribute( 'uv', new  THREE.Float32BufferAttribute(uvs, 2) );
+
+        var texture = new THREE.TextureLoader().load('https://i.imgur.com/j5NYK55.png');
+        var mat = new THREE.MeshBasicMaterial( { map: texture } );
+        mat.transparent = true;
+        this.main = new THREE.Mesh( geo, mat );
+        this.main.position.y = 0.1;
+    
+    }
+  
+    update(dt) {
+
+        let localCamera = markerKanji.worldToLocal(new THREE.Vector3());
+        //localCamera.y = 0;
+        let point = new THREE.Vector3(0, 0, 1);
+        let angle = point.angleTo(localCamera);
+        let axis  = new THREE.Vector3();
+        axis.crossVectors(point, localCamera).normalize();
+        this.main.quaternion.setFromAxisAngle(axis, angle);
+        
+        if (this.animationStatus == "play") {
+        
+            this.main.material.map.offset.copy(this.uvOffsets[this.currentFrame]);
+            this.timer += dt*1000;
+            this.currentFrame = this.timer / (this.duration/this.uvOffsets.length);
+            this.currentFrame = parseInt(this.currentFrame);
+        
+            if (this.currentFrame >= this.uvOffsets.length) {
+            
+                this.main.material.map.offset.copy(this.uvOffsets[0]);
+                this.animationStatus = "stop";
+                
+            }
+        
+        }
+        else if (this.animationStatus == "stop") {
+            
+            this.timer = 0;
+            this.currentFrame = 0;
+            this.animationStatus = "pause";
+        
+        }
+
+    }
+  
+    play() {
+        this.animationStatus = "play";
+    }
+    
+    pause() {
+        this.animationStatus = "pause";
+    }
+    
+    stop() {
+        this.animationStatus = "stop";
+    }
+	
+}
+
+init();
+animate();
+
+function init() {
+
+	// init renderer
+	renderer = new THREE.WebGLRenderer( {alpha: true} );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute';
+	renderer.domElement.style.top = 0;
+	renderer.domElement.style.left = 0;
+	document.body.appendChild( renderer.domElement );
+    document.body.style.overflow = "hidden";
+  
+    loader =  new THREE.TextureLoader();
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+    keyboard = new KeyboardState();
+
+	clock = new THREE.Clock();
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+
+	// init scene
+	scene = new THREE.Scene();
+  
+    var light = new THREE.PointLight( 0xFFFFFF, 1, 100 );
+    light.position.y = 10;
+    light.position.z = 15;
+    scene.add(light);
+	
+	// Create a BASIC camera
+    if (!arMode) {
+    
+        camera = new THREE.PerspectiveCamera(45,  window.innerWidth/window.innerHeight, 0.1, 10000);
+        camera.position.y = 10;
+        camera.position.z = 10;
+        camera.lookAt(new THREE.Vector3(0,0,0));
+        //controls = new THREE.OrbitControls( camera, renderer.domElement );
+        //controls.update();
+        
+    }
+    else {
+    
+        // create basic camera for AR
+        camera = new THREE.Camera();
+            scene.add(camera);
+    
+        // handle arToolkitSource
+        arToolkitSource = new THREEx.ArToolkitSource( {sourceType : 'webcam'} );
+
+        arToolkitSource.init(function onReady() {
+        onWindowResize();
+        });
+
+        // handle resize
+        window.addEventListener('resize', function() {
+        onWindowResize();
+        });
+        
+
+        // initialize arToolkitContext 
+        arToolkitContext = new THREEx.ArToolkitContext( {
+        
+        cameraParametersUrl: 'https://jyunming-chen.github.io/ar.js/data/data/camera_para.dat',
+        detectionMode: 'mono',
+        maxDetectionRate: 30,
+        
+        });
+        
+        // initialize it
+        arToolkitContext.init( function onCompleted() {
+            // copy projection matrix to camera
+            camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+        });
+    
+    }
+    
+    // create marker hiro 
+    markerHiro = addMarkerHiro();
+    scene.add(markerHiro);
+    
+    // create marker kanji 
+    markerKanji = addMarkerKanji();
+    scene.add(markerKanji);
+    
+    // init cannon auto-aim
+    q1 = new THREE.Quaternion();
+    q2 = new THREE.Quaternion();
+    kanjiPrePos = markerKanji.position.clone();
+  
+}
+
+function animate() {
+
+	requestAnimationFrame(animate);
+	stats.update();
+    keyboard.update();
+
+    if (keyboard.pressed('P')) run = !run;
+    if (!run) return;
+  
+    if (arMode) {
+  	    if ( arToolkitSource.ready === false )	return
+        arToolkitContext.update( arToolkitSource.domElement );
+    }
+
+    var dt = clock.getDelta();
+  
+    cannon.update(dt);
+    sprite.update(dt);
+
+    targetTracking()
+    
+    if (keyboard.pressed('I')) markerHiro.position.z -= 0.05;
+    if (keyboard.pressed('J')) markerHiro.position.x -= 0.05;
+    if (keyboard.pressed('K')) markerHiro.position.z += 0.05;
+    if (keyboard.pressed('L')) markerHiro.position.x += 0.05;
+
+    if (keyboard.pressed('W')) markerKanji.position.z -= 0.05;
+    if (keyboard.pressed('A')) markerKanji.position.x -= 0.05;
+    if (keyboard.pressed('S')) markerKanji.position.z += 0.05;
+    if (keyboard.pressed('D')) markerKanji.position.x += 0.05;
+
+    if (keyboard.pressed('1')) markerKanji.position.set(3, 0, 3);
+    if (keyboard.pressed('2')) markerKanji.position.set(-3, 0, 3);
+    if (keyboard.pressed('3')) markerKanji.position.set(-3, 0, -3);
+    if (keyboard.pressed('4')) markerKanji.position.set(3, 0, -3);
+	
+	renderer.render(scene, camera);
+  
+}
+
+function onWindowResize() {
+
+	arToolkitSource.onResizeElement();
+    //arToolkitSource.copyElementSizeTo(renderer.domElement);
+    if( arToolkitContext.arController !== null ){
+        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+    }
+
+    whRatio = window.innerWidth / window.innerHeight;
+    //whRatio = renderer.domElement.style.width / renderer.domElement.style.height;
+    height = 15;
+    width = height*whRatio;
+    camera = new THREE.PerspectiveCamera (45, whRatio, 0.1, 10000);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  
+}
+
+function addMarkerHiro() {  
+
+	let markerRoot = new THREE.Group();
+    var artoolkitMarker;
+    if (arMode) {
+    
+        artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+            type : 'pattern',
+            patternUrl : 'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
+        });
+        
+    }
+    
+    // Create cannon
+    cannon = new Cannon();
+    markerRoot.add(cannon.main);
+    
+    // GridHelper
+    //const gridHelper = new THREE.GridHelper( 1, 10 );
+	//markerRoot.add( gridHelper );
+		
+	return markerRoot;
+}	
+
+function addMarkerKanji() {
+
+	let markerRoot = new THREE.Group();
+    var artoolkitMarker;
+    if (arMode) {
+    
+        artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+            type : 'pattern',
+            patternUrl : 'https://jyunming-chen.github.io/ar.js/data/data/patt.kanji'
+        });
+        
+    }
+    
+    let geo = new THREE.PlaneGeometry(2, 2);
+    let tex = new THREE.TextureLoader().load('https://i.imgur.com/dRW6CCO.png');
+    let mat = new THREE.MeshBasicMaterial({ map: tex });
+    mat.transparent = true;
+    let crosshair = new THREE.Mesh( geo, mat );
+    crosshair.rotation.x = -Math.PI/2;
+    markerRoot.add(crosshair);
+    
+    sprite = new Sprite();
+    sprite.main.position.y = 1.2;
+    markerRoot.add(sprite.main);
+
+    let geo2 = new THREE.CylinderGeometry(0.05, 0.4, 0.5, 20);
+    let mat2 = new THREE.MeshPhongMaterial();
+    let mesh = new THREE.Mesh(geo2, mat2);
+    mesh.position.y = 2.25;
+    markerRoot.add(mesh);
+
+    let geo3 = new THREE.CylinderGeometry(0.4, 0.4, 2, 20);
+    let mat3 = new THREE.MeshPhongMaterial();
+    let mesh2 = new THREE.Mesh(geo3, mat3);
+    mesh2.position.y = -1.25;
+    mesh.add(mesh2);
+
+    // GridHelper
+    //const gridHelper = new THREE.GridHelper( 1, 10 );
+    //markerRoot.add( gridHelper );
+            
+    return markerRoot;
+}	
+
+function targetTracking() {
+
+    var relativePos = markerHiro.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
+    if ( relativePos.distanceTo(kanjiPrePos) > 0.05 ) {
+    
+        q1.copy(q2);  // save current (old) orientation
+        q2.setFromUnitVectors(new THREE.Vector3(1, 0, 0), relativePos.clone().normalize());  // compute new oriention
+
+        N = 100;
+        counter = 0;
+        kanjiPrePos.copy(relativePos);
+            
+    }
+    
+    var deviation = markerHiro.localToWorld( cannon.aimPos ).sub( markerKanji.localToWorld( new THREE.Vector3() ) );
+
+    if (counter < N) {
+        let alpha = counter / N;
+        let qm = q1.clone();
+        qm.slerp(q2, alpha);
+        cannon.main.quaternion.copy(qm);
+        ++counter;
+    }
+
+    if ( deviation.length() > 0.5 ) {
+
+        if (relativePos.x < 0 && relativePos.z < 0) {
+
+            if ( (deviation.x > 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
+            }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
+            }
+        
+        }
+        else if (relativePos.x > 0 && relativePos.z < 0) {
+
+            if ( (deviation.x < 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
+            }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
+            }
+        
+        }
+        else if (relativePos.x > 0 && relativePos.z > 0) {
+        
+            if ( (deviation.x < 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
+            }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
+            }
+        
+        }
+        else if (relativePos.x < 0 && relativePos.z > 0) {
+        
+            if ( (deviation.x > 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.025;
+            }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.025;
+            }
+
+        }
+
+    }
+    else if (markerKanji.children[2].visible){
+        cannon.shoot();
+    }
+  
+}
+
+</script>
+</body>
